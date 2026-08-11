@@ -164,7 +164,7 @@ This is the section the brief explicitly asks for. Do the strong version.
 > experiment."
 
 ```bash
-lessonforge verify --judge-model gemini-3.1-flash-lite
+lessonforge verify --judge-model gemini-3.1-flash-lite   # live judge
 ```
 
 > **Use the lite judge for this command on camera.** `verify` fires 7 judge

@@ -1,4 +1,4 @@
-.PHONY: help setup test run run-offline verify inject memory rubric rubric-doc graph clean demo
+.PHONY: help setup test run run-offline verify verify-offline inject memory rubric rubric-doc graph clean demo
 
 PY  ?= python3
 VENV = .venv
@@ -13,7 +13,8 @@ help:
 	@echo "test         Run the test suite (offline, no API key needed)"
 	@echo "run-offline  Full loop on the mock provider (no API key needed)"
 	@echo "run          Full loop on Gemini (needs GEMINI_API_KEY)"
-	@echo "verify       Prove the evaluator catches deliberate errors"
+	@echo "verify-offline  Prove the evaluator catches planted errors (no API key)"
+	@echo "verify          Same experiment against the live judge (needs key + quota)"
 	@echo "inject       Run the loop with a planted factual error"
 	@echo "memory       Show what the system has learned across runs"
 	@echo "rubric       Print the rubric"
@@ -36,8 +37,14 @@ run-offline:
 run:
 	$(RUN) run
 
+# Offline first: this is the one to reach for. Same seven injections, same
+# rubric, no key and no quota. The live variant below is the real proof but
+# costs 8 judge calls back to back, which exhausts a free-tier per-minute limit.
+verify-offline:
+	$(RUN) verify --provider mock
+
 verify:
-	$(RUN) verify
+	$(RUN) verify --judge-model gemini-3.1-flash-lite
 
 inject:
 	$(RUN) run --inject-error factual
@@ -57,7 +64,7 @@ demo:
 	@echo "\n=== 2. The agent graph ==="
 	@$(RUN) graph
 	@echo "\n=== 3. Proof the evaluator catches planted errors ==="
-	@$(RUN) verify
+	@$(RUN) verify --provider mock
 	@echo "\n=== 4. Full generate -> evaluate -> regenerate loop ==="
 	@$(RUN) run
 	@echo "\n=== 5. What the system has learned ==="

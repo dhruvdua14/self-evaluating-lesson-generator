@@ -60,8 +60,9 @@ A real run, offline, in ten seconds:
 
 ```bash
 make setup                 # venv + dependencies
-make run-offline           # full loop, no API key required
-make test                  # 77 tests, no API key required
+make test                  # 77 tests            — no API key, ~1s
+make run-offline           # the whole loop      — no API key, ~1s
+make verify-offline        # 7 planted errors    — no API key, ~1s
 ```
 
 The offline path is not a stub. It replays a genuinely bad first draft and a
@@ -86,7 +87,7 @@ make run                   # generate → evaluate → regenerate on Gemini
 | **Measures what is measurable** | Readability, sentence length, jargon density and coverage are computed in Python. No LLM is asked to count. |
 | **Judges with an independent context** | The evaluator never sees the generation prompt, the plan, or the fact that this is attempt 3. It reads an anonymous document and a checklist. |
 | **Demands evidence** | Every judged failure must quote the offending text verbatim. Quotes that do not appear in the lesson are rejected automatically and the failure is discarded. |
-| **Proves the rubric works** | `make verify` plants seven known errors in a passing lesson and checks that the predicted checks fail. A rubric nobody has tried to fool is a rubric nobody knows works. |
+| **Proves the rubric works** | `make verify-offline` plants seven known errors in a passing lesson and checks that the predicted checks fail. A rubric nobody has tried to fool is a rubric nobody knows works. |
 | **Learns across runs** | Checks that keep failing become standing directives injected into every future generation, before the first attempt. |
 
 ---
@@ -166,7 +167,8 @@ The obvious challenge to any self-evaluating system: *your evaluator passed the
 lesson, but would it have failed a bad one?*
 
 ```bash
-make verify
+make verify-offline        # no API key needed
+make verify                # same experiment against the live judge
 ```
 
 Takes a lesson that passes all 15 blocking checks, corrupts it seven ways, and
