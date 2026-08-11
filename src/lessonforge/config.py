@@ -105,19 +105,25 @@ class Settings:
         default_factory=lambda: os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     )
 
-    # Two different models by design: the generator is the strong writer, the
-    # judge is a separate, cheaper call. See ARCHITECTURE.md "Judge independence".
+    # Model defaults are flash-tier on purpose: pro-tier models return 429 with
+    # zero quota on a free Google AI Studio key, so a pro default would make the
+    # project fail on first run for most people cloning it. Judge independence
+    # comes from context isolation, not from using a different model — see
+    # ARCHITECTURE.md "Judge independence". Run `lessonforge models` to see what
+    # your key actually reaches, then override any of these in .env.
     generator_model: str = field(
-        default_factory=lambda: os.getenv("LF_GENERATOR_MODEL", "gemini-2.5-pro")
+        default_factory=lambda: os.getenv("LF_GENERATOR_MODEL", "gemini-3.6-flash")
     )
     planner_model: str = field(
-        default_factory=lambda: os.getenv("LF_PLANNER_MODEL", "gemini-2.5-flash")
+        default_factory=lambda: os.getenv("LF_PLANNER_MODEL", "gemini-3.5-flash")
     )
+    # The judge gets the strongest model available: a weak judge is worse than
+    # no judge, because it produces confidence without quality.
     judge_model: str = field(
-        default_factory=lambda: os.getenv("LF_JUDGE_MODEL", "gemini-2.5-pro")
+        default_factory=lambda: os.getenv("LF_JUDGE_MODEL", "gemini-3.6-flash")
     )
     reflector_model: str = field(
-        default_factory=lambda: os.getenv("LF_REFLECTOR_MODEL", "gemini-2.5-flash")
+        default_factory=lambda: os.getenv("LF_REFLECTOR_MODEL", "gemini-3.5-flash")
     )
 
     generator_temperature: float = field(

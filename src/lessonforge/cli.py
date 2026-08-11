@@ -74,20 +74,29 @@ def _render_event(event: dict) -> None:
             f"· expecting failure of: {', '.join(event['expected_failures'])}"
         )
     elif node == "evaluate":
-        if status == "pass":
+        # An evaluate event can also carry status="error" (empty draft, provider
+        # down), which has none of the metric fields. Render defensively — a
+        # crash in the progress display must never mask the underlying failure.
+        attempt = event.get("attempt", "?")
+        if status == "error":
             console.print(
-                f"  [green]evaluate[/green]  attempt {event['attempt']} · "
-                f"[bold green]PASS[/bold green] · {event['summary']} · "
-                f"grade {event['grade_level']}, {event['word_count']} words"
+                f"  [red]evaluate[/red]  attempt {attempt} · "
+                f"[bold red]ERROR[/bold red] · {event.get('detail', 'evaluation failed')}"
             )
-        else:
-            console.print(
-                f"  [red]evaluate[/red]  attempt {event['attempt']} · "
-                f"[bold red]FAIL[/bold red] · {event['summary']} · "
-                f"grade {event['grade_level']}, {event['word_count']} words"
-            )
-            for check_id in event.get("failed", []):
-                console.print(f"            [red]✗[/red] {check_id}")
+            return
+        metrics = (
+            f"grade {event['grade_level']}, {event['word_count']} words"
+            if "grade_level" in event
+            else ""
+        )
+        colour, label = ("green", "PASS") if status == "pass" else ("red", "FAIL")
+        console.print(
+            f"  [{colour}]evaluate[/{colour}]  attempt {attempt} · "
+            f"[bold {colour}]{label}[/bold {colour}] · "
+            f"{event.get('summary', '')}" + (f" · {metrics}" if metrics else "")
+        )
+        for check_id in event.get("failed", []):
+            console.print(f"            [red]✗[/red] {check_id}")
     elif node == "gate":
         colour = "green" if status == "shipped" else "red"
         console.print(

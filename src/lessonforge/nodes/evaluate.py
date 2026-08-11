@@ -22,9 +22,12 @@ def evaluate_node(
     attempt = state.get("attempt", 1)
 
     if not lesson.strip():
+        detail = "Nothing to evaluate: the generator produced an empty lesson."
         return {
-            "error": "Nothing to evaluate: generator produced an empty lesson.",
-            "events": [{"node": "evaluate", "attempt": attempt, "status": "error"}],
+            "error": detail,
+            "events": [
+                {"node": "evaluate", "attempt": attempt, "status": "error", "detail": detail}
+            ],
         }
 
     evaluation, usage = run_evaluation(

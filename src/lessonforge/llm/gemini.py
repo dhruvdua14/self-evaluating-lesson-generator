@@ -83,9 +83,9 @@ class GeminiProvider(LLMProvider):
             except Exception as exc:  # noqa: BLE001 - vendor raises broad types
                 last = exc
                 if not _is_retryable(exc) or attempt == self._max_attempts - 1:
-                    raise ProviderError(f"Gemini call to {model} failed: {exc}") from exc
+                    raise ProviderError(_explain(model, exc)) from exc
                 time.sleep(min(2**attempt, 8))
-        raise ProviderError(f"Gemini call to {model} failed: {last}")
+        raise ProviderError(_explain(model, last))
 
     # ------------------------------------------------------------------- API
 
@@ -164,6 +164,40 @@ class GeminiProvider(LLMProvider):
                 f"Judge model {model} returned unparseable JSON: {exc}\n"
                 f"---\n{raw[:600]}"
             ) from exc
+
+
+def _explain(model: str, exc: Exception | None) -> str:
+    """Turn a raw vendor error into something the user can act on.
+
+    The two failures people actually hit are a model their key cannot see and a
+    model their key has no quota for. Both are recoverable in one command, so
+    the message says which command rather than just echoing the HTTP code.
+    """
+    blob = str(exc)
+    base = f"Gemini call to {model!r} failed: {blob}"
+
+    if "404" in blob or "NOT_FOUND" in blob:
+        return (
+            f"Model {model!r} is not available on this API key (404).\n\n"
+            f"Run `lessonforge models` to list the models your key can reach, "
+            f"then set the matching LF_*_MODEL variable in your .env.\n\n"
+            f"Original error: {blob[:300]}"
+        )
+
+    if "429" in blob or "RESOURCE_EXHAUSTED" in blob:
+        return (
+            f"Model {model!r} returned 429 — your key has no remaining quota for "
+            f"it (free Google AI Studio keys typically have zero quota for "
+            f"pro-tier models).\n\n"
+            f"Either wait for the quota window to reset, or switch to a "
+            f"flash-tier model in your .env, e.g.:\n"
+            f"    LF_GENERATOR_MODEL=gemini-3.6-flash\n"
+            f"    LF_JUDGE_MODEL=gemini-3.6-flash\n\n"
+            f"Run `lessonforge models` to see the full list.\n\n"
+            f"Original error: {blob[:300]}"
+        )
+
+    return base
 
 
 def _finish_reason(response) -> str:

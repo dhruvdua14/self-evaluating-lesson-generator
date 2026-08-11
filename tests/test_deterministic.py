@@ -88,6 +88,44 @@ def test_defined_jargon_is_not_flagged():
     assert "embedding" not in flagged
 
 
+def test_structural_definitions_are_recognised():
+    """Regression: a curated synonym list alone produced unfixable false positives.
+
+    A live run failed three times on `jargon_density` while the lesson was
+    defining its terms perfectly well — the phrasing simply was not in the
+    synonym list. The generator rewrote the definition each time and the regex
+    kept missing it, so the loop could not converge. Matching the *form* of a
+    definition fixes that; each phrasing below is one the live model actually
+    produced or a close variant.
+    """
+    for text in (
+        "Hallucination: Hallucination is when an AI creates a confident answer that is false.",
+        "An embedding is a set of numbers capturing what the sentence is about.",
+        "We split the document into small pieces, and each piece is called a chunk.",
+        "The model turns your words into numbers (an embedding) before searching.",
+        "This is known as fine-tuning, which further trains the model on new data.",
+    ):
+        flagged = {term for term, _ in find_undefined_jargon(text)}
+        assert not flagged, f"false positive on: {text!r} -> {flagged}"
+
+
+def test_thin_definitions_are_still_rejected():
+    """The structural match must require substance, not just a copula."""
+    assert {t for t, _ in find_undefined_jargon("Hallucination is bad.")} == {"hallucination"}
+
+
+def test_term_named_in_a_contents_list_then_defined_later_passes():
+    """A 'what you will learn' list names topics; naming is not using."""
+    text = (
+        "## What you will learn\n"
+        "- How RAG differs from fine-tuning a model.\n\n"
+        "## Later\n"
+        "Fine-tuning means further training the model on your own examples so it "
+        "changes its own behaviour permanently.\n"
+    )
+    assert "fine-tuning" not in {t for t, _ in find_undefined_jargon(text)}
+
+
 def test_jargon_definition_window_looks_backwards_too():
     """A term defined in the preceding sentence counts as defined."""
     text = (

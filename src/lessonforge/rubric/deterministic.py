@@ -155,33 +155,77 @@ JARGON_TERMS: dict[str, tuple[str, ...]] = {
     "retrieval": ("search", "finding", "looking up", "look up", "fetch", "finds"),
 }
 
-# Definition must appear within this many characters of first use (either side).
-_DEFINITION_WINDOW = 320
+# Definition must appear within this many characters of an early occurrence,
+# checked in both directions — a lesson may define a term in the sentence
+# before it first uses it.
+_DEFINITION_WINDOW = 400
+
+# How many early occurrences to inspect. Checking only the very first produces
+# false positives on a "What you will learn" contents list, which *names* terms
+# it goes on to define. Naming a topic is announcing it, not using it.
+_OCCURRENCES_TO_CHECK = 3
+
+
+def _definition_patterns(term: str) -> list[re.Pattern[str]]:
+    """Structural ways English actually introduces a term.
+
+    A curated synonym list alone is too brittle: it cannot anticipate every
+    valid phrasing, and when it misses one the check fails a lesson that is
+    genuinely correct. The generator then cannot fix it — it rewrites the
+    definition, the regex still misses, and the loop cannot converge. An
+    unfixable check is worse than no check.
+
+    Matching on the *form* of a definition ("X is …", "X means …", "X: …")
+    rather than guessing its wording removes that failure mode. Depth of the
+    definition is left to the judged `jargon_defined_on_first_use` check — this
+    one only asks whether a definition is present at all.
+    """
+    t = re.escape(term)
+    return [
+        # "an embedding is a list of numbers…" — require real substance after
+        # the copula so "Hallucination is bad." does not count.
+        re.compile(rf"\b{t}s?\b\s+(?:is|are|means?|refers? to)\b(?:\s+\S+){{4,}}"),
+        # "**Hallucination**: Hallucination is when an AI…"
+        re.compile(rf"\b{t}s?\b\s*[:—–-]\s+(?:\S+\s+){{4,}}"),
+        # "…called an embedding" / "we call this a chunk"
+        re.compile(rf"\bcall(?:ed|s|ing)?\b(?:\s+\w+){{0,3}}\s+(?:an?\s+|the\s+)?{t}s?\b"),
+        # "…a list of numbers (an embedding)"
+        re.compile(rf"\(\s*(?:an?\s+|the\s+)?{t}s?\s*\)"),
+        # "the term embedding means…" / "known as an embedding"
+        re.compile(rf"\b(?:known as|term|word)\b(?:\s+\w+){{0,3}}\s+{t}s?\b"),
+    ]
 
 
 def find_undefined_jargon(lesson_markdown: str) -> list[tuple[str, str]]:
-    """Return (term, first-use excerpt) for each term used without a nearby definition.
-
-    "Nearby" is a character window around the first occurrence, checked in both
-    directions — a lesson may define the term in the sentence before it uses it.
-    """
+    """Return (term, excerpt) for each term that is never defined near an early use."""
     lowered = lesson_markdown.lower()
     offenders: list[tuple[str, str]] = []
 
     for term, markers in JARGON_TERMS.items():
-        match = re.search(rf"\b{re.escape(term)}\b", lowered)
-        if not match:
+        occurrences = list(re.finditer(rf"\b{re.escape(term)}\b", lowered))
+        if not occurrences:
             continue
 
-        start = max(0, match.start() - _DEFINITION_WINDOW)
-        end = min(len(lowered), match.end() + _DEFINITION_WINDOW)
-        window = lowered[start:end]
+        patterns = _definition_patterns(term)
+        defined = False
 
-        if any(marker in window for marker in markers):
+        for match in occurrences[:_OCCURRENCES_TO_CHECK]:
+            start = max(0, match.start() - _DEFINITION_WINDOW)
+            end = min(len(lowered), match.end() + _DEFINITION_WINDOW)
+            window = lowered[start:end]
+
+            if any(marker in window for marker in markers) or any(
+                p.search(window) for p in patterns
+            ):
+                defined = True
+                break
+
+        if defined:
             continue
 
-        excerpt_start = max(0, match.start() - 70)
-        excerpt = lesson_markdown[excerpt_start : match.end() + 70].strip()
+        first = occurrences[0]
+        excerpt_start = max(0, first.start() - 70)
+        excerpt = lesson_markdown[excerpt_start : first.end() + 70].strip()
         offenders.append((term, excerpt.replace("\n", " ")))
 
     return offenders
