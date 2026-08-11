@@ -114,6 +114,7 @@ def judge_lesson(
                     evidence="",
                     kind=CheckKind.JUDGED,
                     blocking=spec.blocking,
+                    errored=True,
                 )
             )
             continue
@@ -178,6 +179,7 @@ def evaluate(
                 evidence="",
                 kind=CheckKind.JUDGED,
                 blocking=spec.blocking,
+                errored=True,
             )
             for spec in JUDGED_CHECKS
         ]

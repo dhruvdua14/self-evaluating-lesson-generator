@@ -71,10 +71,22 @@ class CheckResult(BaseModel):
     evidence: str = ""
     kind: CheckKind = CheckKind.JUDGED
     blocking: bool = True
+    # True when the check did not actually run — the evaluator call failed, was
+    # rate limited, or returned nothing. Such a result still counts as a FAIL
+    # (the system must fail closed), but it is emphatically *not* evidence that
+    # the content is bad. Conflating the two makes an outage look like a
+    # working rubric, which is how a verification run silently becomes
+    # meaningless. See verify.py.
+    errored: bool = False
 
     @property
     def status(self) -> Literal["PASS", "FAIL"]:
         return "PASS" if self.passed else "FAIL"
+
+    @property
+    def is_content_failure(self) -> bool:
+        """A genuine judgement about the lesson, not an infrastructure failure."""
+        return not self.passed and not self.errored
 
 
 class JudgeCheck(BaseModel):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import TypeVar
 
@@ -22,6 +23,33 @@ _RETRYABLE_MARKERS = (
 def _is_retryable(exc: Exception) -> bool:
     blob = f"{type(exc).__name__} {exc}".lower()
     return any(marker in blob for marker in _RETRYABLE_MARKERS)
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    blob = f"{exc}".lower()
+    return "429" in blob or "resource_exhausted" in blob or "rate limit" in blob
+
+
+_RETRY_DELAY_RE = re.compile(r"retrydelay['\"]?\s*[:=]\s*['\"]?(\d+)s", re.IGNORECASE)
+
+
+def _backoff_seconds(exc: Exception, attempt: int) -> float:
+    """How long to wait before the next attempt.
+
+    Honours the server's own `retryDelay` when it supplies one — guessing is
+    strictly worse than being told. Otherwise: rate limits get a long,
+    minute-scale wait because that is the window they are measured over;
+    everything else gets ordinary short exponential backoff.
+    """
+    match = _RETRY_DELAY_RE.search(str(exc))
+    if match:
+        # Small cushion so we resume just after the window, not exactly on it.
+        return min(float(match.group(1)) + 2, 90.0)
+
+    if _is_rate_limit(exc):
+        return min(30.0 * (attempt + 1), 90.0)
+
+    return min(2.0**attempt, 8.0)
 
 
 class GeminiProvider(LLMProvider):
@@ -73,7 +101,15 @@ class GeminiProvider(LLMProvider):
         )
 
     def _call(self, *, model: str, contents: str, config):
-        """Invoke the API with bounded exponential backoff on transient errors."""
+        """Invoke the API with backoff sized to the error, not a single curve.
+
+        Rate limits and transient server errors need very different waits. A
+        429 on a per-minute quota needs to outlast the window — roughly 60s —
+        while a 503 usually clears in seconds. An 8-second ceiling for both
+        looks like resilience and delivers none: every judge call in a run
+        fails, every check is recorded as failed, and the system reports a
+        confident verdict about content nobody evaluated.
+        """
         last: Exception | None = None
         for attempt in range(self._max_attempts):
             try:
@@ -84,7 +120,7 @@ class GeminiProvider(LLMProvider):
                 last = exc
                 if not _is_retryable(exc) or attempt == self._max_attempts - 1:
                     raise ProviderError(_explain(model, exc)) from exc
-                time.sleep(min(2**attempt, 8))
+                time.sleep(_backoff_seconds(exc, attempt))
         raise ProviderError(_explain(model, last))
 
     # ------------------------------------------------------------------- API

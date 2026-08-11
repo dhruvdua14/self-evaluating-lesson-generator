@@ -397,7 +397,19 @@ def verify(
     )
 
     console.print()
-    if report.baseline_passed:
+    if report.baseline_errored:
+        console.print(Panel(
+            f"{len(report.baseline_errored)} check(s) did not actually run — the "
+            "evaluator errored or was rate limited.\n\n"
+            "This run proves nothing. When every judge call fails, every check "
+            "is recorded as failed for every input, so each planted error looks "
+            "trivially 'caught'. Re-run when the evaluator is reachable.\n\n"
+            f"Affected: {', '.join(report.baseline_errored[:6])}"
+            + (" …" if len(report.baseline_errored) > 6 else ""),
+            title="[red]Void — evaluator did not run", border_style="red",
+        ))
+        console.print()
+    elif report.baseline_passed:
         console.print("[green]Baseline passes every blocking check.[/green] "
                       "The experiment is valid.\n")
     else:
@@ -418,15 +430,33 @@ def verify(
     table.add_column("also failed", style="dim")
 
     for outcome in report.outcomes:
+        if outcome.inconclusive:
+            verdict = "[yellow]n/a[/yellow]"
+        elif outcome.passed:
+            verdict = "[green]yes[/green]"
+        else:
+            verdict = "[red]NO[/red]"
         table.add_row(
             outcome.mode,
             ", ".join(outcome.expected),
-            "[green]yes[/green]" if outcome.passed else "[red]NO[/red]",
+            verdict,
             ", ".join(outcome.missed) or "—",
             ", ".join(outcome.collateral) or "—",
         )
     console.print(table)
     console.print()
+
+    if report.any_errored and not report.baseline_errored:
+        errored_modes = [o.mode for o in report.outcomes if o.errored]
+        console.print(Panel(
+            "Some checks did not actually run — the evaluator errored or was "
+            f"rate limited during: {', '.join(errored_modes)}.\n\n"
+            "Those rows are marked n/a rather than counted as catches. A failed "
+            "API call is not evidence that a planted error was caught.",
+            title="[yellow]Partially inconclusive", border_style="yellow",
+        ))
+        console.print()
+        raise typer.Exit(2)
 
     if report.all_caught:
         console.print(Panel.fit(

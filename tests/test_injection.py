@@ -90,3 +90,63 @@ def test_verify_flags_an_invalid_experiment(settings, provider, bad_lesson):
     report = verify_evaluator(provider=provider, settings=settings, baseline=bad_lesson)
     assert not report.valid
     assert not report.all_caught
+
+
+def test_rate_limited_evaluator_never_reports_success(settings):
+    """Regression: an outage used to look like a perfectly working rubric.
+
+    A live verification run reported "every planted error was caught" while the
+    judge was returning 429 for every call. With no evaluator running, every
+    check fails for every input, so each planted error is trivially "caught" —
+    a confidently green result on an experiment that never happened. An
+    evaluator failure must void the run, not decorate it.
+    """
+
+    class RateLimitedProvider:
+        name = "ratelimited"
+
+        def complete(self, **kwargs):  # pragma: no cover - unused
+            raise AssertionError
+
+        def complete_structured(self, **kwargs):
+            from lessonforge.llm.base import ProviderError
+
+            raise ProviderError("429 RESOURCE_EXHAUSTED: quota exceeded")
+
+    report = verify_evaluator(provider=RateLimitedProvider(), settings=settings)
+
+    assert not report.valid, "a run where the judge never answered must be void"
+    assert not report.all_caught, "must never claim success on an evaluator outage"
+    assert report.any_errored
+    assert report.baseline_errored
+
+
+def test_errored_checks_are_not_counted_as_catches(settings):
+    """An API failure is not evidence that a planted error was caught."""
+    from lessonforge.verify import InjectionOutcome
+
+    outcome = InjectionOutcome(
+        mode="factual",
+        description="",
+        expected=["no_weight_update_myth"],
+        actually_failed=["no_weight_update_myth"],
+        errored=["no_weight_update_myth"],
+    )
+    assert outcome.caught == []
+    assert outcome.missed == ["no_weight_update_myth"]
+    assert outcome.inconclusive
+
+
+def test_backoff_outlasts_a_rate_limit_window():
+    """A 429 needs a minute-scale wait, not the 8s ceiling used for 5xx."""
+    from lessonforge.llm.gemini import _backoff_seconds
+
+    rate_limited = Exception("429 RESOURCE_EXHAUSTED quota exceeded")
+    assert _backoff_seconds(rate_limited, 0) >= 30
+    assert _backoff_seconds(rate_limited, 1) >= 60
+
+    # Server-supplied delay wins over any guess.
+    assert _backoff_seconds(Exception("{'retryDelay': '38s'}"), 0) == 40
+
+    # Ordinary transient errors keep short backoff.
+    assert _backoff_seconds(Exception("503 UNAVAILABLE"), 0) <= 2
