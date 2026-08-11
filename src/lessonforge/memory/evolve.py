@@ -55,7 +55,16 @@ def build_patch_block(store: MemoryStore, settings: Settings) -> tuple[str, list
     """Render active directives for injection into the generator system prompt.
 
     Returns the text block and the patch ids applied, so usage can be counted.
+
+    Honours `evolution.enabled`. That flag previously governed only whether *new*
+    directives were learned, while previously learned ones were still injected —
+    which made `--no-evolve` useless for the one experiment it exists to support:
+    holding the code fixed and measuring what the directives are actually worth.
+    A control that silently applies the treatment is not a control.
     """
+    if not settings.evolution.enabled:
+        return "", []
+
     patches = store.active_patches(limit=settings.evolution.max_active_patches)
     if not patches:
         return "", []

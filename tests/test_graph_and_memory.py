@@ -345,3 +345,25 @@ def test_runs_that_never_evaluated_are_excluded_from_quality_metrics(store):
     assert stats["scored_runs"] == 1
     # Would have been 1/3 if outages were counted as content failures.
     assert stats["first_attempt_pass_rate"] == 1.0
+
+
+def test_no_evolve_suppresses_directive_injection(settings, store):
+    """`--no-evolve` must be a real control, not just a learning switch.
+
+    It previously stopped new directives being learned while still injecting
+    previously learned ones, so an A/B that used it silently applied the
+    treatment to the control group.
+    """
+    store.add_patch(
+        check_id="sentence_length",
+        directive="Never exceed 25 words in a sentence.",
+        rationale="r",
+        source_run_id=None,
+    )
+
+    on_block, on_ids = build_patch_block(store, settings)
+    assert "Never exceed 25 words" in on_block and on_ids
+
+    off = replace(settings, evolution=replace(settings.evolution, enabled=False))
+    off_block, off_ids = build_patch_block(store, off)
+    assert off_block == "" and off_ids == []
