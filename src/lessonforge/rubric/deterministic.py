@@ -207,6 +207,15 @@ def _definition_patterns(term: str) -> list[re.Pattern[str]]:
         re.compile(rf"\(\s*(?:an?\s+|the\s+)?{t}s?\s*\)"),
         # "the term embedding means…" / "known as an embedding"
         re.compile(rf"\b(?:known as|term|word)\b(?:\s+\w+){{0,3}}\s+{t}s?\b"),
+        # Anaphoric definition: "…can suffer from hallucination. This happens
+        # when the model does not know an answer." The definition's subject is a
+        # pronoun, so nothing follows the term itself — which is precisely why
+        # this check is advisory rather than blocking (see registry.py).
+        re.compile(
+            rf"\b{t}s?\b[^A-Za-z0-9]{{0,3}}\s*"
+            r"(?:this|that|it)\s+"
+            r"(?:happens?|occurs?|means?|is|refers?)\b(?:\s+\S+){4,}"
+        ),
     ]
 
 

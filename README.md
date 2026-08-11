@@ -131,7 +131,7 @@ quoted text that failed each check and a diff of what the retry fixed.
 
 ## The rubric
 
-18 checkpoints across the six required dimensions. 16 blocking, 2 advisory. Every
+18 checkpoints across the six required dimensions. 15 blocking, 3 advisory. Every
 one is hard pass/fail — no partial credit, no weighted score, no "mostly passes".
 Full definitions in [`docs/RUBRIC.md`](docs/RUBRIC.md).
 
@@ -140,7 +140,7 @@ Full definitions in [`docs/RUBRIC.md`](docs/RUBRIC.md).
 | Accurate & grounded | `accuracy_grounded`, `no_unsupported_claims`, `no_weight_update_myth` |
 | Beginner-friendly language | `readability_grade`, `sentence_length`, `no_runaway_sentence`, `no_idioms_or_cultural_refs`, `length_in_range`* |
 | Teaches by example | `has_concrete_analogy`, `has_worked_example`, `example_density` |
-| No unexplained jargon | `jargon_defined_on_first_use`, `jargon_density` |
+| No unexplained jargon | `jargon_defined_on_first_use`, `jargon_density`* |
 | Covers the key points | `covers_what_why_how`, `covers_three_steps` |
 | Coherent teaching flow | `no_forward_references`, `standalone_completeness`, `has_recap`* |
 
@@ -148,8 +148,14 @@ Full definitions in [`docs/RUBRIC.md`](docs/RUBRIC.md).
 
 Half the checks are **deterministic Python**, half are **LLM-judged**. That split
 is deliberate: an LLM is the only way to assess meaning and a poor way to assess
-anything countable. Readability and jargon density are measured; coherence and
-grounding are judged. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
+anything countable. Readability and sentence length are measured; coherence and
+grounding are judged.
+
+`jargon_density` is the exception that proves the rule. It started as a blocking
+deterministic check and was demoted to advisory after six live false positives —
+"is this term defined?" turned out to be a semantic question wearing a countable
+disguise. On the deciding run the judged `jargon_defined_on_first_use` passed a
+draft the regex failed, and the judge was right. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
 reasoning behind every design choice.
 
 ---
@@ -163,7 +169,7 @@ lesson, but would it have failed a bad one?*
 make verify
 ```
 
-Takes a lesson that passes all 16 blocking checks, corrupts it seven ways, and
+Takes a lesson that passes all 15 blocking checks, corrupts it seven ways, and
 reports whether the checks **predicted in advance** actually fired:
 
 ```

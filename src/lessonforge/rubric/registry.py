@@ -208,8 +208,31 @@ RUBRIC: tuple[CheckSpec, ...] = (
         id="jargon_density",
         dimension=D.NO_UNEXPLAINED_JARGON,
         kind=K.DETERMINISTIC,
-        blocking=True,
-        title="No known technical term appears without a nearby definition",
+        # Advisory, not blocking — demoted on evidence, after six live false
+        # positives.
+        #
+        # §5 of ARCHITECTURE.md says deterministic checks are for *measurable*
+        # properties. "Is this term defined?" turned out not to be one. It is a
+        # semantic question wearing a countable disguise, and every regex that
+        # tried to answer it was wrong in a new way: emphasis markers between
+        # the term and its verb, verbs outside the enumerated list, plurals,
+        # sub-terms inside compounds, and finally anaphora — "…can suffer from
+        # hallucination. This happens when the model does not know an answer."
+        # No pattern catches that without also passing genuinely bare terms.
+        #
+        # The deciding evidence: on the same draft, the judged
+        # `jargon_defined_on_first_use` PASSED while this check FAILED. The
+        # semantic evaluator read the definition correctly and the heuristic did
+        # not. Every one of these false positives blocked a shippable lesson,
+        # and none was fixable by the generator — it kept rewriting definitions
+        # that were already correct.
+        #
+        # Kept as advisory because it still cheaply catches genuinely bare terms
+        # and the signal is useful in a report. It simply has no business
+        # deciding whether content ships. Enforcement of this dimension belongs
+        # to `jargon_defined_on_first_use`, which is judged.
+        blocking=False,
+        title="No known technical term appears without a nearby definition (advisory)",
         question="Is the count of undefined technical terms at or below the threshold?",
         remediation_hint=(
             "For each flagged term, add a short definition within one sentence of "

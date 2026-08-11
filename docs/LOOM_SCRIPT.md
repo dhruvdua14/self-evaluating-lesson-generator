@@ -46,8 +46,8 @@ Then name the learner:
 lessonforge rubric
 ```
 
-> "Eighteen checkpoints across the six dimensions in the brief. Sixteen block
-> shipping, two are advisory."
+> "Eighteen checkpoints across the six dimensions in the brief. Fifteen block
+> shipping, three are advisory."
 
 Make three points, in this order:
 
@@ -176,7 +176,7 @@ lessonforge verify --judge-model gemini-3.1-flash-lite
 
 While it runs:
 
-> "It takes a lesson that passes all sixteen blocking checks, confirms that
+> "It takes a lesson that passes all fifteen blocking checks, confirms that
 > first — if the baseline doesn't pass, the experiment is void and it says so —
 > then corrupts it seven different ways. And for each one I declared **in advance**,
 > in `inject.py`, which checks must fail."
@@ -381,7 +381,7 @@ wrong":
 
 ## 7 · Close (19:30–20:00)
 
-> "So: generate, evaluate against sixteen blocking hard-fail checks, feed the
+> "So: generate, evaluate against fifteen blocking hard-fail checks, feed the
 > quoted failures back, regenerate, and refuse to ship if it still doesn't clear
 > the bar. Plus a memory layer that makes the next run start better than this one
 > did.

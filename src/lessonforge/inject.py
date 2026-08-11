@@ -71,9 +71,9 @@ INJECTIONS: dict[str, Injection] = {
         # moves those document-level averages only 4.67 -> 5.62 — correctly
         # inside the limit. `no_runaway_sentence` exists precisely to catch the
         # localised damage that averaging hides.
-        expects_failure_of=(
-            "jargon_defined_on_first_use", "jargon_density", "no_runaway_sentence",
-        ),
+        # `jargon_density` was demoted to advisory (see registry.py), and a
+        # prediction naming an advisory check proves nothing about shipping.
+        expects_failure_of=("jargon_defined_on_first_use", "no_runaway_sentence"),
         payload=(
             "\n\n## Technical addendum\n\n"
             "The retrieval subsystem computes dense vector embeddings through a "

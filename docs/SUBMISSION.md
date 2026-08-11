@@ -18,7 +18,7 @@ command.
 |---|---|---|
 | **INPUT** — a topic, learner starts from zero | `lessonforge run --topic "..."`; audience encoded in every prompt and in `no_idioms_or_cultural_refs` | `lessonforge run --help` |
 | **GENERATE** — standalone beginner lesson covering what / why / how | `nodes/plan.py` → `nodes/generate.py`; `covers_what_why_how` and `standalone_completeness` enforce it | `make run` |
-| **EVALUATE** — hard pass/fail rubric, no partial credit | 18 checks in `rubric/registry.py`; verdict is a plain `AND` over 16 blocking checks; no score field exists in the data model | `make rubric` |
+| **EVALUATE** — hard pass/fail rubric, no partial credit | 18 checks in `rubric/registry.py`; verdict is a plain `AND` over 15 blocking checks; no score field exists in the data model | `make rubric` |
 | **REGENERATE** — feed reasons back, max 1–2 retries, always terminates | Conditional edge in `graph.py`; `max_retries=2` plus an independent `hard_cap_attempts` ceiling | `make graph` |
 | **OUTPUT** — passing lesson + rejection log | `report.py` writes `lesson.md`, `rejection_log.md`, `run.json`, and every intermediate draft | `ls output/<run>/` |
 
@@ -29,7 +29,7 @@ command.
 | Accurate & grounded | `accuracy_grounded`, `no_unsupported_claims`, `no_weight_update_myth` |
 | Beginner-friendly language | `readability_grade`, `sentence_length`, `no_runaway_sentence`, `no_idioms_or_cultural_refs`, `length_in_range`* |
 | Teaches by example | `has_concrete_analogy`, `has_worked_example`, `example_density` |
-| Clear, no unexplained jargon | `jargon_defined_on_first_use`, `jargon_density` |
+| Clear, no unexplained jargon | `jargon_defined_on_first_use`, `jargon_density`* |
 | Covers the key points | `covers_what_why_how`, `covers_three_steps` |
 | Coherent teaching flow | `no_forward_references`, `standalone_completeness`, `has_recap`* |
 

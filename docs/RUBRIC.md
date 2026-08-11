@@ -16,7 +16,7 @@ weighted score. A lesson ships only if **every blocking check passes**.
 | 9 | `has_worked_example` | teaches_by_example | judged | yes | Traces one concrete question end to end |
 | 10 | `example_density` | teaches_by_example | deterministic | yes | Contains enough explicit example/analogy signposting |
 | 11 | `jargon_defined_on_first_use` | no_unexplained_jargon | judged | yes | Every technical term is defined where it first appears |
-| 12 | `jargon_density` | no_unexplained_jargon | deterministic | yes | No known technical term appears without a nearby definition |
+| 12 | `jargon_density` | no_unexplained_jargon | deterministic | advisory | No known technical term appears without a nearby definition (advisory) |
 | 13 | `covers_what_why_how` | covers_key_points | judged | yes | Covers what RAG is, why it matters, and how it works |
 | 14 | `covers_three_steps` | covers_key_points | deterministic | yes | Names all three pipeline stages explicitly |
 | 15 | `no_forward_references` | coherent_flow | judged | yes | Never relies on a concept before explaining it |
@@ -129,8 +129,8 @@ weighted score. A lesson ships only if **every blocking check passes**.
 
 - **Dimension:** no_unexplained_jargon
 - **Engine:** deterministic
-- **Blocking:** yes
-- **Tests:** No known technical term appears without a nearby definition
+- **Blocking:** no (advisory)
+- **Tests:** No known technical term appears without a nearby definition (advisory)
 - **Question put to the evaluator:** Is the count of undefined technical terms at or below the threshold?
 - **Remediation hint fed back on retry:** For each flagged term, add a short definition within one sentence of its first appearance.
 
