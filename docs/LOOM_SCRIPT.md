@@ -202,6 +202,39 @@ lessonforge run --inject-error factual --max-retries 1
 >
 > A rubric nobody has tried to fool is a rubric nobody knows works."
 
+**Then the second bug story — this one is stronger, and it's the one to land if
+you only have time for one.**
+
+> "There's a second one, and it's the one I'm actually glad I found.
+>
+> On a live run, this verification printed 'every planted error was caught' —
+> all green. It was completely wrong. The judge had hit its rate limit and was
+> returning 429 for every single call. Nothing had been evaluated at all.
+>
+> Here's why it looked green. When every judge call fails, the system correctly
+> records every check as failed — failing closed is the right behaviour. But
+> then verification compared 'checks that failed' against 'checks I predicted
+> would fail', found them all present, and concluded every injection was caught.
+> An outage was indistinguishable from a perfectly discriminating rubric.
+>
+> So a check now carries a flag for 'this didn't actually run'. It still counts
+> as a failure — I still fail closed — but it's no longer treated as *evidence
+> about the content*. Those rows show as n/a, and if the baseline never
+> evaluated, the whole run is voided instead of reported.
+>
+> The root cause was mine too: I had one backoff curve capped at 8 seconds for
+> every retryable error. A per-minute rate limit is never going to clear in 8
+> seconds, so once I hit it, every remaining call failed. Backoff is now sized to
+> the error, and honours the server's own retry delay when it sends one.
+>
+> The general version of that is what I'd want a reviewer to take away: a
+> monitoring system that can't tell 'the thing is fine' from 'the monitor is
+> broken' will eventually tell you a broken thing is fine."
+
+Show `tests/test_injection.py::test_rate_limited_evaluator_never_reports_success`
+— it drives the whole verification with a provider that only ever raises 429 and
+asserts the report comes back void.
+
 ---
 
 ## 5 · Memory and self-evolution (14:30–17:30)

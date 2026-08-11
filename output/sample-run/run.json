@@ -1,0 +1,628 @@
+{
+  "topic": "Introduction to RAG (Retrieval-Augmented Generation)",
+  "run_id": 1,
+  "generated_at": "2026-08-11T11:30:41+00:00",
+  "provider": "gemini",
+  "models": {
+    "planner": "gemini-3.5-flash",
+    "generator": "gemini-3.6-flash",
+    "judge": "gemini-3.6-flash",
+    "reflector": "gemini-3.5-flash"
+  },
+  "policy": {
+    "max_retries": 2,
+    "hard_cap_attempts": 4,
+    "evolution_enabled": true,
+    "patch_threshold": 2
+  },
+  "injected_error": null,
+  "attempts": 3,
+  "shipped": true,
+  "exhausted": false,
+  "error": null,
+  "usage": {
+    "input_tokens": 27669,
+    "output_tokens": 34581,
+    "calls": 7
+  },
+  "plan": {
+    "topic": "Introduction to RAG (Retrieval-Augmented Generation)",
+    "one_sentence_definition": "Retrieval-Augmented Generation (RAG) is a method that helps an AI model give accurate answers by finding relevant documents and showing them to the model at the moment a question is asked.",
+    "learning_objectives": [
+      "Explain the three core steps of the RAG process in their correct order",
+      "Describe how documents are prepared for RAG using chunking and embeddings",
+      "Differentiate between RAG and fine-tuning in terms of how they affect an AI model",
+      "Identify common reasons why a RAG system might fail to give a correct answer"
+    ],
+    "prerequisite_concepts": [
+      "Large Language Model (LLM)",
+      "Prompt"
+    ],
+    "concept_order": [
+      "Limitations of base LLMs (knowledge cutoff, lack of private knowledge, and hallucination)",
+      "Definition of Retrieval-Augmented Generation (RAG)",
+      "The three steps of RAG (Retrieve, Augment, Generate)",
+      "Chunking (splitting documents into smaller pieces)",
+      "Embeddings and Embedding Models (representing meaning as numbers)",
+      "Vector Databases (storing and searching embeddings)",
+      "Indexing vs Retrieval (the preparation phase vs the question phase)",
+      "Top-k Retrieval (limiting the number of retrieved chunks)",
+      "Citations (showing the source of the answer)",
+      "RAG vs Fine-tuning (why RAG does not change the model's weights)",
+      "Failure modes of RAG (missing information, wrong chunks, bad sources, and bad chunking)",
+      "Real-world applications of RAG"
+    ],
+    "analogy": "Imagine a local Kirana (grocery) shopkeeper who has a helper boy. The shopkeeper knows how to talk to customers but does not remember every customer's exact unpaid bills (private knowledge) or today's changing wholesale prices (knowledge cutoff). Instead of trying to memorize everything (fine-tuning), when a customer asks 'What is my pending bill?', the helper boy runs to a physical ledger book, finds the exact page for that customer (Retrieve), places that page on the counter in front of the shopkeeper (Augment), and the shopkeeper reads the page to tell the customer the correct amount (Generate). The shopkeeper does not permanently memorize the bill and forgets it as soon as the customer leaves.",
+    "worked_example": "A user asks: 'What is the interest rate for the Shubh Griha home loan scheme in 2024?' The system searches an internal bank PDF. The PDF has been split into chunks, and one chunk says: 'Under the Shubh Griha scheme launched in January 2024, the annual interest rate for home loans is set at 8.5% for loans up to 30 lakhs.' The system converts the question into an embedding, finds this matching chunk in a vector database, pastes this chunk into a prompt alongside the question, and the LLM generates the answer: 'The interest rate for the Shubh Griha home loan scheme in 2024 is 8.5% for loans up to 30 lakhs,' citing the internal bank PDF.",
+    "common_misconceptions": [
+      "Believing that RAG retrains the AI model or updates its weights permanently",
+      "Thinking that RAG completely eliminates the possibility of wrong answers or hallucinations",
+      "Assuming that a vector database is a strict requirement for RAG, when simple list or keyword search can also be used",
+      "Believing that embeddings are compressed copies of the original text from which the text can be recovered"
+    ],
+    "jargon_to_define": [
+      "Retrieval-Augmented Generation",
+      "Knowledge cutoff",
+      "Hallucination",
+      "Retrieve",
+      "Augment",
+      "Generate",
+      "Chunking",
+      "Embedding",
+      "Embedding model",
+      "Vector database",
+      "Indexing",
+      "Top-k",
+      "Fine-tuning",
+      "Weights"
+    ]
+  },
+  "evaluations": [
+    {
+      "attempt": 1,
+      "passed": false,
+      "summary": "17/18 checks passed",
+      "results": [
+        {
+          "check_id": "accuracy_grounded",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_unsupported_claims",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_weight_update_myth",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "readability_grade",
+          "passed": true,
+          "reason": "",
+          "evidence": "grade=8.68 avg_sentence_words=13.12",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "sentence_length",
+          "passed": true,
+          "reason": "",
+          "evidence": "Found Chunk: \"Under the Shubh Griha scheme launched in January 2024, the annual interest rate for home loans is set at 8.5% for loans up to 30 lakhs.\" (Source: InternalBankPolicy2024.pdf, Page 4) --- The system combines the retrieved chunk and the original question into a single prompt for the LLM.",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_runaway_sentence",
+          "passed": false,
+          "reason": "2 sentence(s) exceed the absolute limit of 45 words. The longest is 51 words. A reader in their second language cannot hold a sentence this long.",
+          "evidence": "If the answer is not in the context, say \"I do not know.\" Context: \"Under the Shubh Griha scheme launched in January 2024, the annual interest rate for home loans is set at 8.5% for loans up to 30 lakhs.\" Question: What is the interest rate for the Shubh Griha home loan scheme in 2024?",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_idioms_or_cultural_refs",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_concrete_analogy",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_worked_example",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "example_density",
+          "passed": true,
+          "reason": "",
+          "evidence": "analogy_markers=3 example_markers=4",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_defined_on_first_use",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_density",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_what_why_how",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_three_steps",
+          "passed": true,
+          "reason": "",
+          "evidence": "missing=[]",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_forward_references",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "standalone_completeness",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_recap",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": false
+        },
+        {
+          "check_id": "length_in_range",
+          "passed": true,
+          "reason": "",
+          "evidence": "word_count=1391",
+          "kind": "deterministic",
+          "blocking": false
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "passed": false,
+      "summary": "16/18 checks passed",
+      "results": [
+        {
+          "check_id": "accuracy_grounded",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_unsupported_claims",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_weight_update_myth",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "readability_grade",
+          "passed": true,
+          "reason": "",
+          "evidence": "grade=8.64 avg_sentence_words=12.94",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "sentence_length",
+          "passed": true,
+          "reason": "",
+          "evidence": "It finds the single most relevant chunk from an internal bank PDF: Found Chunk: \"Under the Shubh Griha scheme launched in January 2024, the home loan interest rate is 8.5% for loans up to 30 lakhs.\" The system pastes the retrieved chunk into the prompt sent to the LLM: System Instruction: Answer the",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_runaway_sentence",
+          "passed": false,
+          "reason": "1 sentence(s) exceed the absolute limit of 45 words. The longest is 56 words. A reader in their second language cannot hold a sentence this long.",
+          "evidence": "It finds the single most relevant chunk from an internal bank PDF: Found Chunk: \"Under the Shubh Griha scheme launched in January 2024, the home loan interest rate is 8.5% for loans up to 30 lakhs.\" The system pastes the retrieved chunk into the prompt sent to the LLM: System Instruction: Answer the question using only the context below.",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_idioms_or_cultural_refs",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_concrete_analogy",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_worked_example",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "example_density",
+          "passed": true,
+          "reason": "",
+          "evidence": "analogy_markers=3 example_markers=3",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_defined_on_first_use",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_density",
+          "passed": false,
+          "reason": "These technical terms are used without a plain-English definition nearby: hallucination.",
+          "evidence": "hallucination: …personal notes, or private reports.  Third, an LLM can suffer from **hallucination**. A **hallucination** happens when an LLM gives a confident answer t…",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_what_why_how",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_three_steps",
+          "passed": true,
+          "reason": "",
+          "evidence": "missing=[]",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_forward_references",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "standalone_completeness",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_recap",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": false
+        },
+        {
+          "check_id": "length_in_range",
+          "passed": true,
+          "reason": "",
+          "evidence": "word_count=1372",
+          "kind": "deterministic",
+          "blocking": false
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "passed": true,
+      "summary": "18/18 checks passed",
+      "results": [
+        {
+          "check_id": "accuracy_grounded",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_unsupported_claims",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "no_weight_update_myth",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "readability_grade",
+          "passed": true,
+          "reason": "",
+          "evidence": "grade=8.8 avg_sentence_words=12.46",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "sentence_length",
+          "passed": true,
+          "reason": "",
+          "evidence": "Search Query: \"Shubh Griha home loan interest rate 2024\" Retrieved Chunk Found: \"Under the Shubh Griha scheme launched in January 2024, the annual interest rate for home loans is set at 8.5% for loans up to 30 lakhs.\" The system constructs a combined prompt input.",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_runaway_sentence",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_idioms_or_cultural_refs",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_concrete_analogy",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_worked_example",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "example_density",
+          "passed": true,
+          "reason": "",
+          "evidence": "analogy_markers=3 example_markers=4",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_defined_on_first_use",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "jargon_density",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_what_why_how",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "covers_three_steps",
+          "passed": true,
+          "reason": "",
+          "evidence": "missing=[]",
+          "kind": "deterministic",
+          "blocking": true
+        },
+        {
+          "check_id": "no_forward_references",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "standalone_completeness",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": true
+        },
+        {
+          "check_id": "has_recap",
+          "passed": true,
+          "reason": "",
+          "evidence": "",
+          "kind": "judged",
+          "blocking": false
+        },
+        {
+          "check_id": "length_in_range",
+          "passed": true,
+          "reason": "",
+          "evidence": "word_count=1495",
+          "kind": "deterministic",
+          "blocking": false
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "node": "plan",
+      "status": "ok",
+      "objectives": 4,
+      "concepts": 12,
+      "analogy": "Imagine a local Kirana (grocery) shopkeeper who has a helper boy. The shopkeeper knows how to talk to customers but does not remember every customer's exact unpaid bills (private knowledge) or today's changing wholesale prices (knowledge cutoff). Instead of trying to memorize everything (fine-tuning), when a customer asks 'What is my pending bill?', the helper boy runs to a physical ledger book, finds the exact page for that customer (Retrieve), places that page on the counter in front of the shopkeeper (Augment), and the shopkeeper reads the page to tell the customer the correct amount (Generate). The shopkeeper does not permanently memorize the bill and forgets it as soon as the customer leaves.",
+      "patches_applied": 0
+    },
+    {
+      "node": "generate",
+      "attempt": 1,
+      "status": "ok",
+      "chars": 10648,
+      "had_feedback": false
+    },
+    {
+      "node": "evaluate",
+      "attempt": 1,
+      "status": "fail",
+      "summary": "17/18 checks passed",
+      "failed": [
+        "no_runaway_sentence"
+      ],
+      "grade_level": 8.68,
+      "word_count": 1391
+    },
+    {
+      "node": "generate",
+      "attempt": 2,
+      "status": "ok",
+      "chars": 9641,
+      "had_feedback": true
+    },
+    {
+      "node": "evaluate",
+      "attempt": 2,
+      "status": "fail",
+      "summary": "16/18 checks passed",
+      "failed": [
+        "no_runaway_sentence",
+        "jargon_density"
+      ],
+      "grade_level": 8.64,
+      "word_count": 1372
+    },
+    {
+      "node": "generate",
+      "attempt": 3,
+      "status": "ok",
+      "chars": 10748,
+      "had_feedback": true
+    },
+    {
+      "node": "evaluate",
+      "attempt": 3,
+      "status": "pass",
+      "summary": "18/18 checks passed",
+      "failed": [],
+      "grade_level": 8.8,
+      "word_count": 1495
+    },
+    {
+      "node": "gate",
+      "status": "shipped",
+      "attempts_used": 3,
+      "max_attempts": 3
+    },
+    {
+      "node": "reflect",
+      "status": "evolved",
+      "candidates": [
+        "no_runaway_sentence"
+      ],
+      "new_patches": [
+        {
+          "check_id": "no_runaway_sentence",
+          "directive": "Never write any sentence that exceeds 40 words; split longer thoughts into multiple concise sentences."
+        }
+      ],
+      "skipped": [],
+      "non_discriminating": [],
+      "detail": null
+    },
+    {
+      "node": "persist",
+      "status": "ok",
+      "run_id": 1,
+      "attempts": 3,
+      "shipped": true,
+      "first_attempt_ok": false
+    }
+  ]
+}

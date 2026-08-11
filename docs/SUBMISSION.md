@@ -55,7 +55,7 @@ command.
 | Offline provider | The whole loop runs with no API key, so tests and CI need no secrets. |
 | 64 tests + CI | Including a standing regression test on the rubric itself. |
 
-## Two things this got wrong, and fixed
+## Three things this got wrong, and fixed
 
 Both were found by the system's own tooling rather than by inspection, which is
 the argument for building the tooling.
@@ -75,6 +75,19 @@ feedback said "define this term", the generator rewrote the definition, the rege
 missed again, and the loop could not converge. Detection now matches the *form*
 of a definition rather than guessing its wording, with depth left to the judged
 check. See commit `41544b1`.
+
+**3. An outage looked exactly like a working rubric.** A live `verify` run
+reported *"every planted error was caught"* while the judge was returning 429 for
+every call — nothing had been evaluated at all. With no evaluator running, every
+check fails for every input, so each planted error is trivially "caught". Checks
+that did not actually run are now marked `errored`, excluded from the caught set,
+and void the run rather than decorating it; backoff is sized to the error so a
+per-minute rate limit no longer poisons every remaining call. See commit
+`c72be6d`.
+
+The general form of that third one is the point of the whole project: **a
+monitoring system that cannot tell "the thing is fine" from "the monitor is
+broken" will eventually report that a broken thing is fine.**
 
 ## Known limitations
 

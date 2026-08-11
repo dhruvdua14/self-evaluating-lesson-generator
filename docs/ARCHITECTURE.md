@@ -356,6 +356,37 @@ the case where every average passes and the check still fires.
 
 A rubric nobody has tried to fool is a rubric nobody knows works.
 
+### 14a. The failure that nearly slipped through
+
+A live verification run reported **"every planted error was caught"** while the
+judge was returning 429 for every single call. Nothing had been evaluated at all.
+
+The mechanism is worth stating plainly, because it is the exact failure this
+project exists to prevent. When every judge call fails, `evaluate()` correctly
+records every judged check as FAIL — failing closed is right. But `verify` then
+compared *checks that failed* against *checks predicted to fail*, found them all
+present, and concluded every injection was caught. **An outage was
+indistinguishable from a perfectly discriminating rubric**, and the run reported
+success with total confidence.
+
+The fix separates two things that had been conflated:
+
+- `CheckResult.errored` marks a check that did not actually run. It still counts
+  as a failure — the system must fail closed — but it is no longer *evidence
+  about the content*.
+- Verification excludes errored checks from `caught`, marks those rows `n/a`,
+  and voids the run entirely when the baseline never evaluated.
+
+The root cause was also fixed: backoff was a single 8-second-ceiling curve for
+every retryable error. A 429 measured over a per-minute window will never clear
+in 8 seconds, so once the limit was hit, every remaining call in the run failed.
+Backoff is now sized to the error — minute-scale for rate limits, honouring the
+server's own `retryDelay` when supplied, short exponential for 5xx.
+
+The general lesson generalises beyond this project: **a monitoring system that
+cannot distinguish "the thing is fine" from "the monitor is broken" will
+eventually report that a broken thing is fine.**
+
 ---
 
 ## 15. Offline provider

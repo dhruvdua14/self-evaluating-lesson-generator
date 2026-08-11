@@ -185,13 +185,25 @@ Predictions are declared in `inject.py` before any result is seen, and the same
 experiment runs in CI as `tests/test_injection.py`. If someone loosens a
 threshold, a test fails.
 
-**This process already found a real bug.** The `jargon` injection was originally
-predicted to fail `readability_grade`. It did not: appending one 60-word
-unreadable paragraph to a long clean lesson moved the Flesch-Kincaid grade from
-4.67 to 5.62 — correctly inside the limit, because document-level averages are
-robust to localised damage. That is the wrong property for a beginner who only
-has to hit one impenetrable sentence to stop reading, so `no_runaway_sentence`
-was added as an absolute per-sentence ceiling that no averaging can smooth over.
+**This process has already found two real bugs.**
+
+The `jargon` injection was originally predicted to fail `readability_grade`. It
+did not: appending one 60-word unreadable paragraph to a long clean lesson moved
+the Flesch-Kincaid grade from 4.67 to 5.62 — correctly inside the limit, because
+document-level averages are robust to localised damage. That is the wrong
+property for a beginner who only has to hit one impenetrable sentence to stop
+reading, so `no_runaway_sentence` was added as an absolute per-sentence ceiling
+that no averaging can smooth over.
+
+The second was worse. A live run printed *"every planted error was caught"* while
+the judge was rate-limited and returning 429 for **every** call — nothing had been
+evaluated at all. With no evaluator running, every check fails for every input,
+so each planted error looked trivially caught. **An outage was indistinguishable
+from a perfectly discriminating rubric.** Checks that did not actually run are now
+marked `errored`, excluded from the caught set, and void the run instead of
+decorating it. The general form is the point of this whole project: *a monitoring
+system that cannot tell "the thing is fine" from "the monitor is broken" will
+eventually report that a broken thing is fine.*
 
 ---
 
@@ -291,3 +303,26 @@ console script installed but the package unimportable. Every `make` target sets
 ## Licence
 
 MIT
+
+---
+
+## A real run, committed
+
+[`output/sample-run/`](output/sample-run/) is a verbatim live run against Gemini —
+not a curated example. It took three attempts:
+
+| Attempt | Verdict | Why |
+|---|---|---|
+| 1 | rejected, 17/18 | `no_runaway_sentence` — two sentences over the 45-word ceiling, longest 51 words |
+| 2 | rejected, 16/18 | still over at 56 words, and `jargon_density` now failing too — it got *worse* |
+| 3 | **shipped, 18/18** | worked example rebuilt as labelled stages with fenced blocks |
+
+The fix in attempt 3 is the interesting part. Attempts 1 and 2 wrote the worked
+example as flowing prose, which produced unreadable 50-word sentences. Attempt 3
+restructured it into `Retrieval → Augmentation → Generation` stages with the
+prompt and output in code blocks. The check pushed the model toward better
+*teaching*, not just shorter sentences.
+
+Read [`output/sample-run/rejection_log.md`](output/sample-run/rejection_log.md)
+for the full record with quoted evidence, and
+[`output/sample-run/drafts/`](output/sample-run/drafts/) for all three attempts.
