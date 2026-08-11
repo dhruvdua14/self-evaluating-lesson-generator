@@ -7,11 +7,29 @@ Face visible throughout. Terminal + editor side by side, font size up.
 ```bash
 cd <repo>
 make test                      # confirm 77 green
-cp .env.example .env           # GEMINI_API_KEY set
-rm -rf output/2*               # clean slate for the demo
-lessonforge memory --reset     # so the memory story starts from zero
+make verify-offline            # confirm 7/7 planted errors caught
+make dashboard &               # http://127.0.0.1:8000
 clear
 ```
+
+> **Do not run `rm -rf output/2*`.** Those directories are the recorded runs the
+> dashboard replays, including the real Gemini runs. Deleting them removes the
+> evidence this ever ran live. Likewise do not `memory --reset` — the 13-run
+> history *is* the memory story in §5.
+
+**Check your quota before planning any live run:**
+
+```bash
+PYTHONPATH=src .venv/bin/python -m lessonforge models
+```
+
+Free Google AI Studio keys get only a handful of `gemini-3.6-flash` calls per
+day. A single full run needs roughly a dozen. If the quota is spent, a live run
+dies at `generate` with a 429 and produces *nothing* — that is an outage, not a
+rejection, and it is a bad thing to put on camera. **Record the loop from the
+dashboard's Replay mode instead** (see §3); it animates the real recorded run
+event-for-event, and `output/sample-run/` is committed proof it came from a live
+Gemini run.
 
 Keep two terminal tabs open: one for commands, one already sitting in the repo
 for showing files.
@@ -425,11 +443,25 @@ wrong":
 
 ## If a live run fails on camera
 
+Two different failures, and they call for opposite responses.
+
+**A rejection** — the loop ran, three attempts were judged, nothing shipped.
 Don't cut. Say:
 
 > "That's the fail-closed path — it just refused to ship something it judged
 > inadequate. That's the designed behaviour, not a crash."
 
 Then `cat output/2*/rejection_log.md` and walk the reasons. A live rejection is a
-**better** demo than a clean pass, because it shows the gate has teeth. Keep
-`--provider mock` ready as a fallback if the API is down.
+**better** demo than a clean pass, because it shows the gate has teeth.
+
+**A 429 / quota outage** — `generate` errors, evaluate reports "Nothing to
+evaluate", the run records `attempts=0`. This proves nothing about quality and
+looks like a broken project. Cut, and switch to Replay mode or
+`--provider mock`. Worth one sentence if it happens live:
+
+> "That's a quota outage, not a quality failure — and note the system records it
+> as `errored`, not as a failed attempt. It refuses to score a run that never
+> produced anything. That distinction is in `memory/store.py`."
+
+That is a genuinely good thing to be caught by, so long as you name it
+correctly.
