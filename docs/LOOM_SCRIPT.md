@@ -289,12 +289,53 @@ Walk the tables: failure patterns → learned directives → run history.
 > generator's system prompt on every future run — **before the first attempt**,
 > not as a retry fix."
 
-If you have several runs recorded, point at the history table:
+Point at the history table — and then **do not claim the win.** This is the most
+important 60 seconds of honesty in the video, and it will land better than a
+clean result would.
 
-> "And here's the claim I'm making, deliberately narrow so it can be falsified:
-> first-attempt pass rate should rise as directives accumulate. That number is
-> printed right here. If it doesn't move, this layer is decoration — and this
-> table is what proves it either way."
+> "I made a deliberately narrow claim here so it could be falsified:
+> first-attempt pass rate should rise as directives accumulate. And look — it
+> does. Zero directives, first attempt fails. Two directives, three runs in a
+> row pass first time.
+>
+> But I don't think that's true, and I want to show you why.
+>
+> I fixed two false positives in one of my own checks in the same window. So
+> 'the directives are helping' and 'my rubric stopped being wrong' both predict
+> exactly that jump. Same evidence, two explanations.
+>
+> So I ran the control — identical code, identical models, directives switched
+> off."
+
+```bash
+lessonforge run --no-evolve
+```
+
+> "It passes on the first attempt too. Eighteen out of eighteen, no directives at
+> all.
+>
+> That's one control run — I lost the second to a quota limit — so it's not
+> enough to say the directives do nothing. But it's enough to say my improvement
+> isn't evidence for them. The rubric fix explains it just as well.
+>
+> So what I'll actually claim: the **mechanism** works, and you can watch it
+> work — failures aggregate, a directive gets written at the threshold, it goes
+> into every later run before the first attempt. The **quality benefit** is
+> unproven. To prove it I'd need an interleaved A/B across many runs, on a frozen
+> rubric, on varied topics. I didn't do that, so I'm not claiming it.
+>
+> I'd rather tell you a claim of mine failed than have you find it yourself."
+
+Have `docs/ARCHITECTURE.md` §12a and
+`output/sample-run/self_evolution_measurement.md` open — both carry the run
+history, the confound, and the control output in full.
+
+While you are here, mention the control-group bug, because it is a nice detail:
+
+> "One more thing that fell out of this: `--no-evolve` originally only stopped
+> the system *learning* new directives — it still injected the ones it already
+> had. So my control group was silently getting the treatment. A control that
+> applies the treatment isn't a control."
 
 **Then the guard rail — say this explicitly:**
 
