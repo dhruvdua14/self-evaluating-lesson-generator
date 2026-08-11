@@ -455,12 +455,23 @@ function handle(msg){
     lastEval = msg;
   }
   else if(msg.kind === 'done'){
-    clearNodes(); NODES.forEach(([n]) => setNode(n,'ok'));
-    banner(msg.shipped ? 'pass' : 'fail',
-      msg.shipped ? 'SHIPPED — cleared every blocking check'
-                  : 'REJECTED — retry budget exhausted, nothing shipped',
-      msg.shipped ? ` Passed on attempt ${msg.attempts}.`
-                  : ' Failing closed is the designed behaviour, not a crash.');
+    // A run that never produced an attempt did not *fail* the rubric — it never
+    // reached it. Calling that "REJECTED — failing closed is the designed
+    // behaviour" would report an outage as a quality verdict, which is the one
+    // mistake this whole project is about not making. See ARCHITECTURE.md #15a.
+    const errored = !msg.shipped && (msg.attempts === 0 || !!msg.error);
+    if(errored){
+      banner('warn', 'ERRORED — no lesson was evaluated',
+        ' ' + (msg.error || 'The run stopped before any attempt was judged.') +
+        ' This is not a rubric verdict: nothing was measured, so nothing was judged.');
+    } else {
+      clearNodes(); NODES.forEach(([n]) => setNode(n,'ok'));
+      banner(msg.shipped ? 'pass' : 'fail',
+        msg.shipped ? 'SHIPPED — cleared every blocking check'
+                    : 'REJECTED — retry budget exhausted, nothing shipped',
+        msg.shipped ? ` Passed on attempt ${msg.attempts}.`
+                    : ' Failing closed is the designed behaviour, not a crash.');
+    }
     if(msg.usage) runInfo({attempts:msg.attempts,
       'API calls':msg.usage.calls, 'tokens in':msg.usage.input_tokens,
       'tokens out':msg.usage.output_tokens, output:msg.output_dir});
