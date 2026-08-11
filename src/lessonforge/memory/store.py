@@ -329,17 +329,34 @@ class MemoryStore:
     # ----------------------------------------------------------------- stats
 
     def stats(self) -> dict:
-        """Aggregates used by `lessonforge memory` and the evolution report."""
+        """Aggregates used by `lessonforge memory` and the evolution report.
+
+        Runs that produced **no evaluation at all** (`attempts = 0`) are excluded
+        from the quality metrics. Such a run means the generator or planner never
+        returned — an API outage or exhausted quota — not that the content was
+        poor. Counting those as first-attempt failures silently drags the
+        pass rate down and makes the self-evolving layer look ineffective when
+        the truth is that nothing was ever written or judged.
+
+        This is the same confusion as `CheckResult.errored` and
+        `VerificationReport.valid`, arriving a third time in a third layer:
+        infrastructure failure must never be read as a quality signal.
+        """
         with self._conn() as conn:
             runs = conn.execute(
                 """SELECT COUNT(*) AS total,
                           SUM(shipped) AS shipped,
-                          SUM(COALESCE(first_attempt_ok,0)) AS first_ok,
-                          SUM(attempts) AS total_attempts,
+                          SUM(CASE WHEN attempts = 0 THEN 1 ELSE 0 END) AS errored,
                           SUM(input_tokens) AS in_tok,
                           SUM(output_tokens) AS out_tok,
                           SUM(api_calls) AS calls
                    FROM runs WHERE finished_at IS NOT NULL"""
+            ).fetchone()
+            scored = conn.execute(
+                """SELECT COUNT(*) AS total,
+                          SUM(COALESCE(first_attempt_ok,0)) AS first_ok,
+                          SUM(attempts) AS total_attempts
+                   FROM runs WHERE finished_at IS NOT NULL AND attempts > 0"""
             ).fetchone()
             patches = conn.execute(
                 "SELECT COUNT(*) AS n FROM prompt_patches WHERE active = 1"
@@ -353,15 +370,23 @@ class MemoryStore:
                    ORDER BY id ASC"""
             ).fetchall()
 
+        n_scored = int(scored["total"] or 0)
+        first_ok = int(scored["first_ok"] or 0)
+
         return {
             "total_runs": total,
             "shipped": int(runs["shipped"] or 0),
-            "first_attempt_passes": int(runs["first_ok"] or 0),
+            # Runs where nothing was ever generated or judged. Reported so an
+            # outage is visible rather than buried in a worse-looking pass rate.
+            "errored_runs": int(runs["errored"] or 0),
+            "scored_runs": n_scored,
+            "first_attempt_passes": first_ok,
             "first_attempt_pass_rate": (
-                round(int(runs["first_ok"] or 0) / total, 3) if total else None
+                round(first_ok / n_scored, 3) if n_scored else None
             ),
             "avg_attempts": (
-                round(int(runs["total_attempts"] or 0) / total, 2) if total else None
+                round(int(scored["total_attempts"] or 0) / n_scored, 2)
+                if n_scored else None
             ),
             "active_patches": int(patches),
             "input_tokens": int(runs["in_tok"] or 0),

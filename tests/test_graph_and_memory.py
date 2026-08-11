@@ -312,3 +312,36 @@ def test_trace_is_json_serialisable(settings, store, provider):
     final = graph.invoke(state, config={"recursion_limit": 40})
 
     json.dumps(build_trace(final, settings))  # must not raise
+
+
+def test_runs_that_never_evaluated_are_excluded_from_quality_metrics(store):
+    """Regression: an API outage was dragging down the self-evolution metric.
+
+    Two live runs died because the generator hit its daily quota. Neither
+    produced a single draft, yet both were recorded as first-attempt failures,
+    halving the reported pass rate. Infrastructure failure is not a quality
+    signal — the same confusion as CheckResult.errored and
+    VerificationReport.valid, in a third layer.
+    """
+    def finish(run_id: int, *, attempts: int, first_ok: bool, shipped: bool) -> None:
+        store.finish_run(
+            run_id, attempts=attempts, shipped=shipped, first_attempt_ok=first_ok,
+            input_tokens=0, output_tokens=0, api_calls=0,
+        )
+
+    def start() -> int:
+        return store.start_run(
+            topic="t", provider="mock", generator_model="m", judge_model="m",
+            injected_error=None, patches_applied=0,
+        )
+
+    finish(start(), attempts=1, first_ok=True, shipped=True)    # genuine pass
+    finish(start(), attempts=0, first_ok=False, shipped=False)  # outage
+    finish(start(), attempts=0, first_ok=False, shipped=False)  # outage
+
+    stats = store.stats()
+    assert stats["total_runs"] == 3
+    assert stats["errored_runs"] == 2
+    assert stats["scored_runs"] == 1
+    # Would have been 1/3 if outages were counted as content failures.
+    assert stats["first_attempt_pass_rate"] == 1.0

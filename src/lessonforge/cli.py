@@ -62,12 +62,22 @@ def _render_event(event: dict) -> None:
                 f"            [magenta]{event['patches_applied']} learned "
                 f"directive(s) loaded from memory[/magenta]"
             )
-    elif node == "generate" and status == "ok":
-        tag = "with revision brief" if event.get("had_feedback") else "first draft"
-        console.print(
-            f"  [cyan]generate[/cyan]  attempt {event['attempt']} · "
-            f"{event['chars']:,} chars · {tag}"
-        )
+    elif node == "generate":
+        if status == "error":
+            # Previously unrendered, which made a generator outage look like a
+            # mysterious "nothing to evaluate" downstream with no stated cause.
+            console.print(
+                f"  [red]generate[/red]  attempt {event.get('attempt', '?')} · "
+                f"[bold red]ERROR[/bold red] · {event.get('detail', 'generation failed')}"
+            )
+        else:
+            tag = "with revision brief" if event.get("had_feedback") else "first draft"
+            console.print(
+                f"  [cyan]generate[/cyan]  attempt {event['attempt']} · "
+                f"{event['chars']:,} chars · {tag}"
+            )
+    elif node == "plan" and status == "error":
+        console.print(f"  [red]plan[/red]      [bold red]ERROR[/bold red] · {event.get('detail')}")
     elif node == "inject":
         console.print(
             f"  [yellow]inject[/yellow]    deliberate error `{event['mode']}` planted "
@@ -277,12 +287,16 @@ def memory(
         return
 
     console.print()
+    errored = stats.get("errored_runs", 0)
+    rate = stats["first_attempt_pass_rate"]
     console.print(Panel.fit(
-        f"runs                     {stats['total_runs']}\n"
+        f"runs                     {stats['total_runs']}"
+        + (f"  [yellow]({errored} never evaluated — excluded)[/yellow]" if errored else "")
+        + "\n"
         f"shipped                  {stats['shipped']}\n"
+        f"scored runs              {stats.get('scored_runs', 0)}\n"
         f"first-attempt passes     {stats['first_attempt_passes']}\n"
-        f"first-attempt pass rate  "
-        f"{stats['first_attempt_pass_rate'] if stats['first_attempt_pass_rate'] is not None else '—'}\n"
+        f"first-attempt pass rate  {rate if rate is not None else '—'}\n"
         f"avg attempts per run     {stats['avg_attempts'] or '—'}\n"
         f"active directives        {stats['active_patches']}\n"
         f"total API calls          {stats['api_calls']}",
@@ -321,11 +335,15 @@ def memory(
         table.add_column("directives active", justify="right")
         table.add_column("shipped", justify="center")
         for row in history[-15:]:
+            if row["attempts"] == 0:
+                first = "[yellow]n/a[/yellow]"  # never generated; not a quality signal
+                shipped = "[yellow]errored[/yellow]"
+            else:
+                first = "[green]pass[/green]" if row["first_attempt_ok"] else "[red]fail[/red]"
+                shipped = "yes" if row["shipped"] else "no"
             table.add_row(
-                str(row["id"]), str(row["attempts"]),
-                "[green]pass[/green]" if row["first_attempt_ok"] else "[red]fail[/red]",
-                str(row["patches_applied"]),
-                "yes" if row["shipped"] else "no",
+                str(row["id"]), str(row["attempts"]), first,
+                str(row["patches_applied"]), shipped,
             )
         console.print(table)
     console.print()
