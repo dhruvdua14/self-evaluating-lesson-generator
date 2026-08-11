@@ -1,4 +1,4 @@
-.PHONY: help setup test run run-offline verify verify-offline inject memory rubric rubric-doc graph clean demo
+.PHONY: help setup test run run-offline verify verify-offline inject memory rubric rubric-doc graph dashboard clean demo
 
 PY  ?= python3
 VENV = .venv
@@ -16,6 +16,7 @@ help:
 	@echo "verify-offline  Prove the evaluator catches planted errors (no API key)"
 	@echo "verify          Same experiment against the live judge (needs key + quota)"
 	@echo "inject       Run the loop with a planted factual error"
+	@echo "dashboard    Web UI: watch the loop run, or replay a recorded run"
 	@echo "memory       Show what the system has learned across runs"
 	@echo "rubric       Print the rubric"
 	@echo "graph        Print the agent graph"
@@ -25,7 +26,7 @@ help:
 setup:
 	$(PY) -m venv $(VENV)
 	$(BIN)/pip install --upgrade pip
-	$(BIN)/pip install -e ".[dev]"
+	$(BIN)/pip install -e ".[dev,dashboard]"
 	@echo "\nNow: cp .env.example .env  and add your GEMINI_API_KEY"
 
 test:
@@ -48,6 +49,11 @@ verify:
 
 inject:
 	$(RUN) run --inject-error factual
+
+# The UI is the demo surface: replay mode animates a recorded run with no API
+# key, so a recording never depends on a live model staying up.
+dashboard:
+	PYTHONPATH=src $(BIN)/python -m uvicorn dashboard.app:app --host 127.0.0.1 --port 8000 --log-level warning
 
 memory:
 	$(RUN) memory

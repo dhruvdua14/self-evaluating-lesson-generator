@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lessonforge — quality gate</title>
+<style>
+  :root{
+    --bg:#0C0E18; --surface:#151827; --surface2:#1D2133; --raise:#232842;
+    --line:#2A2F45; --text:#E8EAF4; --muted:#8A90AB; --dim:#5C6280;
+    --accent:#6E86FF; --accent-dim:#1B2145;
+    --pass:#3DD68C; --pass-bg:#10301F; --fail:#FF6B6B; --fail-bg:#341418;
+    --warn:#FFB454; --warn-bg:#33240F;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  button,select,input{font:inherit;color:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+
+  /* ---------------------------------------------------------------- header */
+  header{
+    display:flex;flex-wrap:wrap;gap:.75rem 1rem;align-items:center;
+    padding:.85rem 1.25rem;background:var(--surface);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:baseline;gap:.6rem;margin-right:auto}
+  .brand h1{font-size:1rem;margin:0;letter-spacing:-.01em}
+  .brand span{font-family:var(--mono);font-size:.68rem;color:var(--muted);
+    letter-spacing:.1em;text-transform:uppercase}
+
+  .ctl{display:flex;align-items:center;gap:.4rem}
+  .ctl label{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--dim)}
+  select,input[type=text]{
+    background:var(--surface2);border:1px solid var(--line);border-radius:4px;
+    padding:.35rem .5rem;font-size:.82rem;max-width:15rem;
+  }
+  input[type=text]{min-width:17rem}
+  select:focus-visible,input:focus-visible,button:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px}
+
+  button{
+    background:var(--surface2);border:1px solid var(--line);border-radius:4px;
+    padding:.4rem .8rem;cursor:pointer;font-size:.82rem;transition:.12s;
+  }
+  button:hover:not(:disabled){background:var(--raise);border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#08101f;font-weight:600}
+  button.primary:hover:not(:disabled){filter:brightness(1.12)}
+
+  /* ----------------------------------------------------------------- layout */
+  main{display:grid;grid-template-columns:16rem minmax(0,1fr) 20rem;gap:1px;
+    background:var(--line);min-height:calc(100vh - 57px)}
+  main > section{background:var(--bg);padding:1.1rem;overflow-y:auto;
+    max-height:calc(100vh - 57px)}
+  @media (max-width:1200px){
+    main{grid-template-columns:1fr}
+    main > section{max-height:none}
+  }
+
+  h2.panel{font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--dim);margin:0 0 .8rem}
+  h2.panel + h2.panel{margin-top:1.5rem}
+
+  /* --------------------------------------------------------------- pipeline */
+  .pipe{display:flex;flex-direction:column;gap:.3rem}
+  .node{
+    display:grid;grid-template-columns:1.5rem 1fr;gap:.6rem;align-items:center;
+    padding:.55rem .65rem;border:1px solid var(--line);border-radius:5px;
+    background:var(--surface);transition:.2s;
+  }
+  .node .dot{width:.62rem;height:.62rem;border-radius:50%;background:var(--dim);
+    justify-self:center;transition:.2s}
+  .node .nm{font-family:var(--mono);font-size:.78rem}
+  .node .sub{grid-column:2;font-size:.68rem;color:var(--muted);margin-top:.1rem}
+  .node.active{border-color:var(--accent);background:var(--accent-dim)}
+  .node.active .dot{background:var(--accent);box-shadow:0 0 0 4px rgba(110,134,255,.18);
+    animation:pulse 1.1s ease-in-out infinite}
+  .node.ok .dot{background:var(--pass)}
+  .node.bad{border-color:var(--fail)}
+  .node.bad .dot{background:var(--fail)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .arrow{color:var(--dim);text-align:center;font-size:.7rem;line-height:1;margin:-.1rem 0}
+  .loopback{font-family:var(--mono);font-size:.64rem;color:var(--warn);
+    text-align:center;padding:.2rem;border:1px dashed var(--line);border-radius:4px}
+
+  /* ----------------------------------------------------------- attempt card */
+  .attempt{border:1px solid var(--line);border-radius:7px;background:var(--surface);
+    margin-bottom:1rem;overflow:hidden}
+  .attempt.pass{border-color:rgba(61,214,140,.45)}
+  .attempt.fail{border-color:rgba(255,107,107,.4)}
+  .ahead{display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;
+    padding:.7rem .9rem;background:var(--surface2);border-bottom:1px solid var(--line)}
+  .ahead .n{font-family:var(--mono);font-size:.95rem}
+  .badge{font-family:var(--mono);font-size:.63rem;letter-spacing:.09em;
+    text-transform:uppercase;padding:.16rem .5rem;border-radius:3px}
+  .badge.pass{background:var(--pass-bg);color:var(--pass)}
+  .badge.fail{background:var(--fail-bg);color:var(--fail)}
+  .badge.run{background:var(--accent-dim);color:var(--accent)}
+  .badge.warn{background:var(--warn-bg);color:var(--warn)}
+  .metrics{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+
+  /* --------------------------------------------------------------- check grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));
+    gap:.3rem;padding:.8rem}
+  .chk{
+    display:flex;align-items:center;gap:.4rem;padding:.34rem .45rem;border-radius:4px;
+    background:var(--surface2);border:1px solid transparent;transition:.25s;
+    font-family:var(--mono);font-size:.68rem;
+  }
+  .chk .mk{width:.85rem;text-align:center;flex:none;font-weight:700}
+  .chk .id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+  .chk.pending .mk{color:var(--dim)}
+  .chk.pass{background:var(--pass-bg);border-color:rgba(61,214,140,.3)}
+  .chk.pass .mk{color:var(--pass)} .chk.pass .id{color:var(--text)}
+  .chk.fail{background:var(--fail-bg);border-color:rgba(255,107,107,.4)}
+  .chk.fail .mk{color:var(--fail)} .chk.fail .id{color:#FFC9C9}
+  .chk.advisory.fail{background:var(--warn-bg);border-color:rgba(255,180,84,.35)}
+  .chk.advisory.fail .mk,.chk.advisory.fail .id{color:var(--warn)}
+  .chk.flip{animation:flip .4s ease}
+  @keyframes flip{0%{transform:scale(.9);opacity:.4}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+
+  /* ------------------------------------------------------------- failures */
+  .fails{padding:0 .9rem .9rem;display:flex;flex-direction:column;gap:.6rem}
+  .fail-item{border-left:2px solid var(--fail);padding:.5rem .75rem;
+    background:var(--surface2);border-radius:0 5px 5px 0}
+  .fail-item.advisory{border-left-color:var(--warn)}
+  .fail-item .cid{font-family:var(--mono);font-size:.72rem;color:var(--fail)}
+  .fail-item.advisory .cid{color:var(--warn)}
+  .fail-item .why{font-size:.82rem;margin:.25rem 0 0}
+  .fail-item .ev{font-family:var(--mono);font-size:.7rem;color:var(--muted);
+    margin-top:.35rem;padding:.4rem .5rem;background:var(--bg);border-radius:4px;
+    max-height:6.5rem;overflow:auto;white-space:pre-wrap;word-break:break-word}
+
+  .changed{padding:.6rem .9rem;border-top:1px solid var(--line);
+    font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.5rem}
+  .pill{font-family:var(--mono);font-size:.66rem;padding:.12rem .45rem;border-radius:3px}
+  .pill.fixed{background:var(--pass-bg);color:var(--pass)}
+  .pill.still{background:var(--fail-bg);color:var(--fail)}
+  .pill.regress{background:var(--warn-bg);color:var(--warn)}
+
+  /* ---------------------------------------------------------------- panels */
+  .stat{display:flex;justify-content:space-between;gap:1rem;padding:.3rem 0;
+    border-bottom:1px solid var(--line);font-size:.8rem}
+  .stat:last-child{border-bottom:0}
+  .stat b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+  .directive{background:var(--surface);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:0 5px 5px 0;padding:.5rem .65rem;margin-bottom:.45rem}
+  .directive .src{font-family:var(--mono);font-size:.63rem;color:var(--accent)}
+  .directive p{margin:.2rem 0 0;font-size:.78rem;color:var(--muted)}
+
+  .banner{border-radius:6px;padding:.8rem 1rem;margin-bottom:1rem;font-size:.88rem;
+    border:1px solid}
+  .banner.pass{background:var(--pass-bg);border-color:rgba(61,214,140,.4);color:var(--pass)}
+  .banner.fail{background:var(--fail-bg);border-color:rgba(255,107,107,.4);color:var(--fail)}
+  .banner.warn{background:var(--warn-bg);border-color:rgba(255,180,84,.4);color:var(--warn)}
+  .banner b{display:block;font-size:.95rem;margin-bottom:.2rem}
+
+  .empty{color:var(--dim);font-size:.82rem;padding:2rem 1rem;text-align:center;
+    border:1px dashed var(--line);border-radius:7px}
+
+  table.vfy{width:100%;border-collapse:collapse;font-size:.75rem}
+  table.vfy th{text-align:left;font-family:var(--mono);font-size:.62rem;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--dim);
+    padding:.4rem .5rem;border-bottom:1px solid var(--line)}
+  table.vfy td{padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+  table.vfy td.mode{font-family:var(--mono);color:var(--accent)}
+  table.vfy code{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+
+  details.lesson{margin-top:1rem;border:1px solid var(--line);border-radius:6px;
+    background:var(--surface)}
+  details.lesson summary{padding:.6rem .9rem;cursor:pointer;font-family:var(--mono);
+    font-size:.72rem;color:var(--muted)}
+  details.lesson pre{margin:0;padding:.9rem;border-top:1px solid var(--line);
+    max-height:26rem;overflow:auto;font-family:var(--mono);font-size:.72rem;
+    white-space:pre-wrap;color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><h1>lessonforge</h1><span>quality gate</span></div>
+
+  <div class="ctl">
+    <label for="topic">topic</label>
+    <input id="topic" type="text" value="Introduction to RAG (Retrieval-Augmented Generation)">
+  </div>
+  <div class="ctl">
+    <label for="provider">provider</label>
+    <select id="provider">
+      <option value="mock">mock (offline)</option>
+      <option value="gemini">gemini (live)</option>
+    </select>
+  </div>
+  <div class="ctl">
+    <label for="inject">inject</label>
+    <select id="inject"><option value="">none</option></select>
+  </div>
+  <button id="run" class="primary">Run loop</button>
+  <div class="ctl">
+    <label for="replay">replay</label>
+    <select id="replay"><option value="">recorded run…</option></select>
+  </div>
+  <button id="verify">Verify rubric</button>
+</header>
+
+<main>
+  <section>
+    <h2 class="panel">Pipeline</h2>
+    <div class="pipe" id="pipe"></div>
+    <h2 class="panel">Run</h2>
+    <div id="runinfo"><div class="empty" style="padding:1rem">Idle</div></div>
+  </section>
+
+  <section>
+    <div id="banner"></div>
+    <div id="attempts">
+      <div class="empty">
+        Press <b>Run loop</b> to watch the system write a lesson, judge it, and
+        rewrite it until it clears the bar — or refuse to ship.<br><br>
+        <span style="color:var(--muted)">Pick a recorded run under <b>replay</b> to
+        animate a real run with no API key.</span>
+      </div>
+    </div>
+    <div id="verifyout"></div>
+    <div id="lessonout"></div>
+  </section>
+
+  <section>
+    <h2 class="panel">Memory</h2>
+    <div id="memstats"></div>
+    <h2 class="panel">Learned directives</h2>
+    <div id="patches"></div>
+    <h2 class="panel">Top failure patterns</h2>
+    <div id="failpatterns"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, c, txt) => { const n = document.createElement(t); if(c) n.className = c;
+  if(txt !== undefined) n.textContent = txt; return n; };
+
+let RUBRIC = [], BUSY = false;
+const NODES = [
+  ['plan','blueprint + learned directives'],
+  ['generate','write the lesson'],
+  ['evaluate','18 checks · deterministic + judged'],
+  ['gate','retry, or stop'],
+  ['reflect','learn from failures'],
+  ['persist','record the run'],
+];
+
+/* ------------------------------------------------------------------ chrome */
+function drawPipe(){
+  const p = $('#pipe'); p.innerHTML = '';
+  NODES.forEach(([name, sub], i) => {
+    const n = el('div','node'); n.id = 'node-' + name;
+    n.append(el('div','dot'));
+    const w = el('div'); w.append(el('div','nm', name)); w.append(el('div','sub', sub));
+    n.append(w); p.append(n);
+    if(i === 2) p.append(el('div','arrow','▼'));
+    else if(i === 3) p.append(el('div','loopback','↺ fail & budget left → generate'));
+    else if(i < NODES.length-1) p.append(el('div','arrow','▼'));
+  });
+}
+const setNode = (name, cls) => {
+  const n = $('#node-' + name); if(!n) return;
+  n.className = 'node' + (cls ? ' ' + cls : '');
+};
+const clearNodes = () => NODES.forEach(([n]) => setNode(n, ''));
+
+function banner(kind, title, body){
+  const b = $('#banner'); b.innerHTML = '';
+  if(!kind) return;
+  const d = el('div','banner ' + kind);
+  d.append(el('b', null, title));
+  if(body) d.append(document.createTextNode(body));
+  b.append(d);
+}
+
+/* ------------------------------------------------------------ attempt cards */
+function attemptCard(n){
+  const card = el('div','attempt'); card.id = 'attempt-' + n;
+  const head = el('div','ahead');
+  head.append(el('div','n','Attempt ' + n));
+  const badge = el('span','badge run','evaluating…'); badge.dataset.role = 'badge';
+  head.append(badge);
+  const m = el('div','metrics'); m.dataset.role = 'metrics';
+  head.append(m);
+  card.append(head);
+
+  const grid = el('div','grid'); grid.dataset.role = 'grid';
+  RUBRIC.forEach(c => {
+    const cell = el('div','chk pending' + (c.blocking ? '' : ' advisory'));
+    cell.id = `chk-${n}-${c.id}`;
+    cell.title = c.title + (c.blocking ? '' : ' (advisory)');
+    cell.append(el('span','mk','·'));
+    cell.append(el('span','id', c.id));
+    grid.append(cell);
+  });
+  card.append(grid);
+  card.append(el('div','fails'));
+  $('#attempts').append(card);
+  card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  return card;
+}
+
+function applyEvaluation(n, ev){
+  const card = $('#attempt-' + n) || attemptCard(n);
+  const byId = Object.fromEntries(RUBRIC.map(c => [c.id, c]));
+
+  // Flip checks one at a time so the gate is legible on video rather than
+  // resolving in a single frame.
+  ev.results.forEach((r, i) => setTimeout(() => {
+    const cell = $(`#chk-${n}-${r.check_id}`); if(!cell) return;
+    const spec = byId[r.check_id] || {blocking:true};
+    cell.className = 'chk flip ' + (r.passed ? 'pass' : 'fail') + (spec.blocking ? '' : ' advisory');
+    cell.querySelector('.mk').textContent = r.passed ? '✓' : '✕';
+  }, i * 55));
+
+  const total = ev.results.length * 55 + 120;
+  setTimeout(() => {
+    const badge = card.querySelector('[data-role=badge]');
+    badge.className = 'badge ' + (ev.passed ? 'pass' : 'fail');
+    badge.textContent = ev.passed ? 'passed — shippable' : 'rejected';
+    card.classList.add(ev.passed ? 'pass' : 'fail');
+
+    const fails = card.querySelector('.fails'); fails.innerHTML = '';
+    ev.results.filter(r => !r.passed).forEach(r => {
+      const spec = byId[r.check_id] || {};
+      const item = el('div','fail-item' + (spec.blocking === false ? ' advisory' : ''));
+      item.append(el('div','cid', r.check_id + (spec.blocking === false ? '  (advisory)' : '')));
+      item.append(el('p','why', r.reason || spec.title || ''));
+      if(r.evidence) item.append(el('div','ev', '“' + r.evidence.trim() + '”'));
+      fails.append(item);
+    });
+  }, total);
+}
+
+function markMetrics(n, txt){
+  const card = $('#attempt-' + n); if(!card) return;
+  card.querySelector('[data-role=metrics]').textContent = txt;
+}
+
+function showChanged(prev, curr){
+  const card = $('#attempt-' + curr.attempt); if(!card) return;
+  const pf = new Set(prev.results.filter(r => !r.passed && r.blocking).map(r => r.check_id));
+  const cf = new Set(curr.results.filter(r => !r.passed && r.blocking).map(r => r.check_id));
+  const row = el('div','changed');
+  const add = (cls, label, items) => items.forEach(i =>
+    row.append(el('span','pill ' + cls, label + ' ' + i)));
+  add('fixed','fixed', [...pf].filter(x => !cf.has(x)));
+  add('still','still failing', [...pf].filter(x => cf.has(x)));
+  add('regress','newly broken', [...cf].filter(x => !pf.has(x)));
+  if(row.children.length) card.append(row);
+}
+
+/* ------------------------------------------------------------------ panels */
+async function loadMemory(){
+  const m = await (await fetch('/api/memory')).json();
+  const s = $('#memstats'); s.innerHTML = '';
+  const rows = [
+    ['runs', m.total_runs], ['shipped', m.shipped],
+    ['errored (excluded)', m.errored_runs ?? 0],
+    ['scored runs', m.scored_runs ?? 0],
+    ['first-attempt pass rate', m.first_attempt_pass_rate ?? '—'],
+    ['avg attempts', m.avg_attempts ?? '—'],
+    ['API calls', m.api_calls],
+  ];
+  rows.forEach(([k,v]) => {
+    const r = el('div','stat'); r.append(el('span',null,k)); r.append(el('b',null,String(v)));
+    s.append(r);
+  });
+
+  const p = $('#patches'); p.innerHTML = '';
+  if(!m.patches.length) p.append(el('div','empty','Nothing learned yet'));
+  m.patches.forEach(x => {
+    const d = el('div','directive');
+    d.append(el('div','src', x.check_id + ' · used ' + x.times_applied + '×'));
+    d.append(el('p',null,x.directive));
+    p.append(d);
+  });
+
+  const f = $('#failpatterns'); f.innerHTML = '';
+  if(!m.failures.length) f.append(el('div','empty','No failures recorded'));
+  m.failures.forEach(x => {
+    const r = el('div','stat');
+    r.append(el('span',null,x.check_id)); r.append(el('b',null,String(x.fails)));
+    f.append(r);
+  });
+}
+
+function runInfo(d){
+  const box = $('#runinfo'); box.innerHTML = '';
+  Object.entries(d).forEach(([k,v]) => {
+    if(v === null || v === undefined || v === '') return;
+    const r = el('div','stat'); r.append(el('span',null,k)); r.append(el('b',null,String(v)));
+    box.append(r);
+  });
+}
+
+/* -------------------------------------------------------------- event apply */
+let lastEval = null;
+
+function handle(msg){
+  if(msg.kind === 'start'){
+    runInfo({provider:msg.provider, generator:msg.generator, judge:msg.judge,
+             'max attempts':msg.max_attempts, injected:msg.inject || 'none'});
+  }
+  else if(msg.kind === 'node'){
+    const e = msg.event, n = e.node;
+    if(n === 'inject'){
+      banner('warn','Deliberate error planted: ' + e.mode,
+        'Expecting these checks to fail: ' + (e.expected_failures || []).join(', '));
+      return;
+    }
+    if(n === 'plan' && e.status === 'ok'){
+      setNode('plan','ok');
+      if(e.patches_applied) banner('warn', e.patches_applied +
+        ' learned directive(s) loaded from memory', 'Applied before the first attempt.');
+    }
+    else if(n === 'generate'){
+      setNode('plan','ok'); setNode('generate', e.status === 'error' ? 'bad' : 'active');
+      if(e.status === 'ok') attemptCard(e.attempt);
+    }
+    else if(n === 'evaluate'){
+      setNode('generate','ok'); setNode('evaluate','active');
+      if(e.grade_level !== undefined)
+        markMetrics(e.attempt, `${e.word_count} words · grade ${e.grade_level}`);
+    }
+    else if(n === 'gate'){
+      setNode('evaluate','ok'); setNode('gate', e.status === 'shipped' ? 'ok' : 'bad');
+    }
+    else if(n === 'reflect'){
+      setNode('reflect', e.status === 'evolved' ? 'ok' : 'active');
+      if(e.new_patches && e.new_patches.length)
+        banner('warn','Learned ' + e.new_patches.length + ' new standing directive(s)',
+          e.new_patches.map(p => p.directive).join('  •  '));
+    }
+    else if(n === 'persist'){ setNode('reflect','ok'); setNode('persist','ok'); loadMemory(); }
+  }
+  else if(msg.kind === 'evaluation'){
+    applyEvaluation(msg.attempt, msg);
+    if(lastEval) showChanged(lastEval, msg);
+    lastEval = msg;
+  }
+  else if(msg.kind === 'done'){
+    clearNodes(); NODES.forEach(([n]) => setNode(n,'ok'));
+    banner(msg.shipped ? 'pass' : 'fail',
+      msg.shipped ? 'SHIPPED — cleared every blocking check'
+                  : 'REJECTED — retry budget exhausted, nothing shipped',
+      msg.shipped ? ` Passed on attempt ${msg.attempts}.`
+                  : ' Failing closed is the designed behaviour, not a crash.');
+    if(msg.usage) runInfo({attempts:msg.attempts,
+      'API calls':msg.usage.calls, 'tokens in':msg.usage.input_tokens,
+      'tokens out':msg.usage.output_tokens, output:msg.output_dir});
+    setBusy(false);
+  }
+  else if(msg.kind === 'error'){
+    banner('fail','Run failed', ' ' + msg.message);
+    setBusy(false);
+  }
+  /* -------- verify -------- */
+  else if(msg.kind === 'verify_start'){
+    $('#verifyout').innerHTML = '';
+    banner('warn','Verifying the rubric…','Judge: ' + msg.judge);
+  }
+  else if(msg.kind === 'verify_step'){
+    banner('warn','Verifying the rubric…',
+      msg.stage === 'baseline' ? ' Evaluating the clean baseline' : ' Injecting ' + msg.detail);
+  }
+  else if(msg.kind === 'verify_done'){ renderVerify(msg); setBusy(false); }
+}
+
+function renderVerify(r){
+  const out = $('#verifyout'); out.innerHTML = '';
+  if(!r.valid){
+    banner('warn','Experiment void',
+      r.any_errored ? ' The evaluator never ran — every check failed for every input, so each planted error looks trivially caught.'
+                    : ' The baseline already fails, so nothing can be proven.');
+  } else {
+    banner(r.all_caught ? 'pass' : 'fail',
+      r.all_caught ? 'Every planted error was caught by its predicted check'
+                   : 'The rubric has gaps',
+      r.all_caught ? ' Baseline valid; predictions declared before the run.'
+                   : ' Predicted checks that did not fire are listed below.');
+  }
+  const t = el('table','vfy');
+  t.innerHTML = '<thead><tr><th>injection</th><th>predicted to fail</th>' +
+    '<th>caught</th><th>missed</th></tr></thead>';
+  const tb = el('tbody');
+  r.outcomes.forEach(o => {
+    const tr = el('tr');
+    tr.append(el('td','mode', o.mode));
+    const p = el('td'); p.append(el('code',null,o.expected.join(', '))); tr.append(p);
+    const c = el('td');
+    c.append(el('span','badge ' + (o.inconclusive ? 'warn' : (o.missed.length ? 'fail' : 'pass')),
+      o.inconclusive ? 'n/a' : (o.missed.length ? 'NO' : 'yes')));
+    tr.append(c);
+    const m = el('td'); m.append(el('code',null,o.missed.join(', ') || '—')); tr.append(m);
+    tb.append(tr);
+  });
+  t.append(tb); out.append(t);
+}
+
+/* --------------------------------------------------------------- streaming */
+function setBusy(v){
+  BUSY = v;
+  $('#run').disabled = v; $('#verify').disabled = v; $('#replay').disabled = v;
+  $('#run').textContent = v ? 'Running…' : 'Run loop';
+}
+
+function reset(){
+  $('#attempts').innerHTML = ''; $('#verifyout').innerHTML = '';
+  $('#lessonout').innerHTML = ''; banner(null); lastEval = null;
+  clearNodes();
+}
+
+function openStream(streamKey){
+  const es = new EventSource('/api/stream/' + streamKey);
+  es.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if(msg.kind === 'end'){ es.close(); setBusy(false); return; }
+    handle(msg);
+  };
+  es.onerror = () => { es.close(); setBusy(false); };
+}
+
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+/* ------------------------------------------------------------------ replay */
+async function replay(id){
+  reset(); setBusy(true);
+  const d = await (await fetch('/api/recorded/' + encodeURIComponent(id))).json();
+
+  runInfo({provider:d.provider, generator:d.models?.generator, judge:d.models?.judge,
+           attempts:d.attempts, injected:d.injected_error || 'none', replay:'yes'});
+
+  const evals = Object.fromEntries((d.evaluations || []).map(e => [e.attempt, e]));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  for(const e of (d.events || [])){
+    handle({kind:'node', event:e});
+    await wait(e.node === 'evaluate' ? 250 : 550);
+    if(e.node === 'evaluate' && evals[e.attempt]){
+      const ev = evals[e.attempt];
+      handle({kind:'evaluation', ...ev});
+      await wait(ev.results.length * 55 + 700);
+    }
+  }
+
+  handle({kind:'done', shipped:d.shipped, attempts:d.attempts,
+          usage:d.usage, output_dir:id});
+
+  if(d.lesson){
+    const det = el('details','lesson');
+    det.append(el('summary',null,'Final shipped lesson — ' +
+      d.lesson.split(/\s+/).length + ' words'));
+    det.append(el('pre',null,d.lesson));
+    $('#lessonout').append(det);
+  }
+  setBusy(false);
+}
+
+/* -------------------------------------------------------------------- init */
+(async function init(){
+  drawPipe();
+  RUBRIC = await (await fetch('/api/rubric')).json();
+
+  const inj = await (await fetch('/api/injections')).json();
+  inj.forEach(i => {
+    const o = el('option', null, i.mode); o.value = i.mode; o.title = i.description;
+    $('#inject').append(o);
+  });
+
+  const rec = await (await fetch('/api/recorded')).json();
+  rec.forEach(r => {
+    const o = el('option', null,
+      `${r.shipped ? '✓' : '✕'} ${r.attempts} attempt(s) · ${r.id.slice(0,15)}`);
+    o.value = r.id; $('#replay').append(o);
+  });
+
+  await loadMemory();
+
+  $('#run').onclick = async () => {
+    reset(); setBusy(true);
+    try{
+      const {stream} = await post('/api/run', {
+        topic: $('#topic').value,
+        provider: $('#provider').value,
+        inject_error: $('#inject').value || null,
+      });
+      openStream(stream);
+    }catch(err){ banner('fail','Could not start run', ' ' + err.message); setBusy(false); }
+  };
+
+  $('#verify').onclick = async () => {
+    reset(); setBusy(true);
+    try{
+      const {stream} = await post('/api/verify', {provider: $('#provider').value});
+      openStream(stream);
+    }catch(err){ banner('fail','Could not start verification', ' ' + err.message); setBusy(false); }
+  };
+
+  $('#replay').onchange = e => { if(e.target.value) replay(e.target.value); };
+})();
+</script>
+</body>
+</html>

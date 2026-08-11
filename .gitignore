@@ -26,3 +26,6 @@ output/*
 .DS_Store
 .idea/
 .vscode/
+
+# Dashboard demo runs are kept out of the real memory store
+memory/dashboard.db

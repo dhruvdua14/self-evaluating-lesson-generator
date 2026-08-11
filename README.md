@@ -63,6 +63,7 @@ make setup                 # venv + dependencies
 make test                  # 77 tests            — no API key, ~1s
 make run-offline           # the whole loop      — no API key, ~1s
 make verify-offline        # 7 planted errors    — no API key, ~1s
+make dashboard             # watch it happen     — http://127.0.0.1:8000
 ```
 
 The offline path is not a stub. It replays a genuinely bad first draft and a
@@ -76,6 +77,36 @@ To run against a live model:
 cp .env.example .env       # add your GEMINI_API_KEY
 make run                   # generate → evaluate → regenerate on Gemini
 ```
+
+---
+
+## Watch it happen
+
+```bash
+make dashboard      # http://127.0.0.1:8000
+```
+
+A local web UI for seeing the gate work rather than reading it in a terminal.
+The rubric renders as an 18-cell grid that flips check by check as each
+evaluation lands, so a rejection is visible as a wall of red rather than a line
+of log output — and every failure shows its reason and the quoted text that
+triggered it.
+
+Two modes:
+
+| Mode | What it does | Needs a key? |
+|---|---|---|
+| **Run loop** | Executes the graph for real and streams events over SSE as they happen | Only for `gemini`; `mock` runs offline |
+| **Replay** | Animates a run that already happened, from its `run.json` | No |
+
+Replay exists for a specific reason: a demo recording should not depend on a
+live model staying up. It reads the same event stream the live run produced and
+drives the same UI, so nothing about it is staged — it is a recording of real
+output, not a mockup.
+
+The side panels show the pipeline lighting up node by node, and the memory state
+(learned directives, failure patterns, first-attempt pass rate) refreshing after
+each run.
 
 ---
 

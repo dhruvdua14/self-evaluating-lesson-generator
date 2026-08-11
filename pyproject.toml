@@ -23,6 +23,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# The dashboard is a demo surface, not part of the library. Kept optional so the
+# core loop installs without a web stack.
+dashboard = ["fastapi>=0.110", "uvicorn[standard]>=0.27"]
 
 [project.scripts]
 lessonforge = "lessonforge.cli:main"

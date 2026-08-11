@@ -118,8 +118,40 @@ docstring aloud.
 
 ## 3 · The loop running end to end (7:00–11:00)
 
+**Do this section in the browser, not the terminal.** The check grid flipping
+red is the single most legible thing in the whole demo.
+
 ```bash
-lessonforge run
+make dashboard          # http://127.0.0.1:8000
+```
+
+Set **provider** to `mock` for a fast, guaranteed-clean take, or `gemini` if you
+want it live and your quota is healthy. Press **Run loop**.
+
+Narrate as it animates:
+
+- The **pipeline** on the left lights up node by node — plan, generate,
+  evaluate.
+- **Attempt 1's grid** flips check by check. *"It's grading its own first draft
+  in real time — and there's the wall of red."*
+- Point at a red cell, then at the failure detail underneath. *"It doesn't just
+  say 'failed'. It names the check, gives the reason, and quotes the exact text
+  that broke it. That quoted string is what gets fed back."*
+- **Attempt 2** appears with a `fixed / still failing / newly broken` strip.
+  *"That's the diff between attempts — what the retry actually repaired."*
+- Green banner: **SHIPPED**.
+
+> **If your quota is spent or you want a guaranteed take:** use the **replay**
+> dropdown instead. It animates a run that really happened, from its `run.json`,
+> with no API key. Say so out loud — "this is a recording of a real run, not a
+> mockup" — and show `output/sample-run/run.json` underneath if you want to
+> prove it. There is a rejected run in the list too, which is worth replaying to
+> show the fail-closed path.
+
+Then drop to the terminal for the artefact:
+
+```bash
+cat output/sample-run/rejection_log.md
 ```
 
 Let it run live. Narrate as events appear:
