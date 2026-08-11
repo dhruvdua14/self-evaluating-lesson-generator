@@ -138,6 +138,7 @@ RUBRIC: tuple[CheckSpec, ...] = (
     # ------------------------------------------------------ teaches by example
     CheckSpec(
         id="has_concrete_analogy",
+        evidence_required=False,  # absence check: nothing to quote
         dimension=D.TEACHES_BY_EXAMPLE,
         kind=K.JUDGED,
         blocking=True,
@@ -155,6 +156,7 @@ RUBRIC: tuple[CheckSpec, ...] = (
     ),
     CheckSpec(
         id="has_worked_example",
+        evidence_required=False,  # absence check: nothing to quote
         dimension=D.TEACHES_BY_EXAMPLE,
         kind=K.JUDGED,
         blocking=True,
@@ -217,6 +219,7 @@ RUBRIC: tuple[CheckSpec, ...] = (
     # ----------------------------------------------------------- key coverage
     CheckSpec(
         id="covers_what_why_how",
+        evidence_required=False,  # absence check: nothing to quote
         dimension=D.COVERS_KEY_POINTS,
         kind=K.JUDGED,
         blocking=True,
@@ -286,6 +289,7 @@ RUBRIC: tuple[CheckSpec, ...] = (
     # advisory is what stops the rubric becoming a wall the loop can never clear.
     CheckSpec(
         id="has_recap",
+        evidence_required=False,  # absence check: nothing to quote
         dimension=D.COHERENT_FLOW,
         kind=K.JUDGED,
         blocking=False,

@@ -121,10 +121,29 @@ INJECTIONS: dict[str, Injection] = {
     "coverage": Injection(
         mode="coverage",
         description=(
-            "Deletes the worked example and the how-it-works section, so the "
-            "lesson describes RAG without ever teaching it."
+            "Deletes the traced worked example and the step-by-step section, "
+            "leaving the lesson to describe RAG without ever walking one "
+            "question through it."
         ),
-        expects_failure_of=("has_worked_example", "covers_what_why_how"),
+        # Deliberately does NOT predict `covers_what_why_how`. It originally
+        # did, and the live judge refused to fail it — correctly. Removing the
+        # "How it works" *section* does not remove how-it-works *content*: the
+        # analogy section and the recap still explain retrieve, augment, and
+        # generate. The judge was reading for substance while the prediction was
+        # reasoning about headings. See the `gutted` mode below for the
+        # injection that genuinely removes coverage.
+        expects_failure_of=("has_worked_example",),
+        payload="",
+    ),
+    "gutted": Injection(
+        mode="gutted",
+        description=(
+            "Keeps only the opening section, so nothing about how RAG works "
+            "survives anywhere in the lesson."
+        ),
+        expects_failure_of=(
+            "covers_what_why_how", "has_worked_example", "covers_three_steps",
+        ),
         payload="",
     ),
 }
@@ -150,6 +169,19 @@ def _strip_teaching_sections(lesson: str) -> str:
     return head + "".join("## " + s for s in kept)
 
 
+def _keep_only_opening(lesson: str) -> str:
+    """Keep the title and the first H2 section only.
+
+    Unlike `_strip_teaching_sections`, which removes sections by heading, this
+    removes the body of the lesson outright — so no explanation of the pipeline
+    survives anywhere, in a heading, an analogy, or a recap.
+    """
+    parts = _SECTION_SPLIT.split(lesson)
+    if len(parts) <= 1:
+        return lesson
+    return parts[0] + "## " + parts[1]
+
+
 def apply_injection(lesson: str, mode: str) -> tuple[str, list[str], list[str]]:
     """Corrupt a lesson.
 
@@ -173,6 +205,8 @@ def apply_injection(lesson: str, mode: str) -> tuple[str, list[str], list[str]]:
 
     if inj.mode == "coverage":
         corrupted = _strip_teaching_sections(lesson)
+    elif inj.mode == "gutted":
+        corrupted = _keep_only_opening(lesson)
     else:
         corrupted = lesson.rstrip() + inj.payload
 

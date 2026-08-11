@@ -53,11 +53,11 @@ command.
 | Anti-fabrication | Judged failures must quote the lesson verbatim; unverifiable quotes are discarded. An omitted verdict counts as a failure, never a pass. |
 | Fails closed | Retry budget exhausted with checks failing → nothing ships, non-zero exit. |
 | Offline provider | The whole loop runs with no API key, so tests and CI need no secrets. |
-| 64 tests + CI | Including a standing regression test on the rubric itself. |
+| 67 tests + CI | Including a standing regression test on the rubric itself. |
 
 ## Three things this got wrong, and fixed
 
-Both were found by the system's own tooling rather than by inspection, which is
+All three were found by the system's own tooling rather than by inspection, which is
 the argument for building the tooling.
 
 **1. Document averages hide localised damage.** `verify` predicted the `jargon`

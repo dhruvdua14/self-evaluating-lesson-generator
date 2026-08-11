@@ -87,13 +87,20 @@ _REQUIRED_ANY = {
     "has_recap": ("recap", "summary", "to remember"),
 }
 
-# ALL: every marker must survive. These stand in for structural content, so a
-# lesson whose teaching sections have been deleted must fail — a mock that waves
-# gutted content through would report a clean rubric that the live judge then
-# contradicts.
+# ALL: every marker must survive.
+#
+# These key on *substance*, not on headings. An earlier version checked
+# `covers_what_why_how` against the strings "how it works" and "step by step" —
+# i.e. section titles — and duly "caught" an injection that deleted those
+# headings while leaving the actual explanation of retrieve/augment/generate
+# intact elsewhere in the lesson. The live judge read for substance and
+# correctly refused to fail it, so the mock was manufacturing a green the real
+# evaluator would not give. A mock that disagrees with reality in the lenient
+# direction hides gaps; in the strict direction it invents them. Both are worse
+# than no mock.
 _REQUIRED_ALL = {
     "has_worked_example": ("step one", "step two", "step three"),
-    "covers_what_why_how": ("how it works", "step by step"),
+    "covers_what_why_how": ("retriev", "augment", "generat"),
 }
 
 

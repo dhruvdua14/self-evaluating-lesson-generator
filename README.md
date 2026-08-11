@@ -61,7 +61,7 @@ A real run, offline, in ten seconds:
 ```bash
 make setup                 # venv + dependencies
 make run-offline           # full loop, no API key required
-make test                  # 61 tests, no API key required
+make test                  # 67 tests, no API key required
 ```
 
 The offline path is not a stub. It replays a genuinely bad first draft and a

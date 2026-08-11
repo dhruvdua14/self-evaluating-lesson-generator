@@ -123,9 +123,22 @@ def judge_lesson(
         reason = (raw.reason or "").strip()
         evidence = (raw.evidence or "").strip()
 
-        # Fabricated-evidence guard: a failure justified by a quote that is not
-        # in the lesson is downgraded to a pass, with the discrepancy recorded.
-        if not passed and evidence and not _evidence_is_real(evidence, lesson):
+        # Fabricated-evidence guard — applied ONLY to presence checks.
+        #
+        # For a presence check, a failure means offending text exists, so an
+        # unquotable failure is a fabricated one and gets discarded. For an
+        # absence check, the failure means required content is *missing*, and
+        # there is nothing to quote by construction. Applying the guard there
+        # inverts it: the judge's honest "The lesson body is empty." reads as an
+        # unverifiable quote, and a correct FAIL becomes a PASS. That shipped,
+        # and it let a 50-word stub pass `has_worked_example` and
+        # `covers_what_why_how` against two different live judges.
+        if (
+            not passed
+            and evidence
+            and spec.evidence_required
+            and not _evidence_is_real(evidence, lesson)
+        ):
             passed = True
             reason = ""
             evidence = f"[evidence rejected: quote not found in lesson] {evidence[:160]}"

@@ -86,6 +86,65 @@ def test_fabricated_quote_is_rejected():
     )
 
 
+def test_absence_checks_do_not_require_quotable_evidence(settings):
+    """Regression: the anti-fabrication guard was passing an empty lesson.
+
+    A judge cannot quote something that is missing. When the guard was applied
+    to absence checks, the judge's honest "The lesson body is empty." was
+    treated as an unverifiable quote and the correct FAIL was flipped to a PASS.
+    Two different live Gemini judges then "passed" a 50-word stub on
+    `has_worked_example` and `covers_what_why_how`.
+    """
+    stub = "# RAG\n\n## What you will learn\n\nYou will learn what RAG is.\n"
+
+    class HonestProvider:
+        name = "honest"
+
+        def complete(self, **kwargs):  # pragma: no cover - unused
+            raise AssertionError
+
+        def complete_structured(self, *, schema, **kwargs):
+            from lessonforge.llm.base import StructuredCompletion, Usage
+            from lessonforge.rubric.schema import JudgeCheck
+
+            return StructuredCompletion(
+                parsed=schema(
+                    results=[
+                        JudgeCheck(
+                            check_id=spec.id,
+                            passed=False,
+                            reason="The lesson has no content.",
+                            # Describes absence; deliberately not a quotation.
+                            evidence="The lesson body is empty.",
+                        )
+                        for spec in JUDGED_CHECKS
+                    ]
+                ),
+                usage=Usage(calls=1),
+            )
+
+    evaluation, _ = evaluate(
+        lesson=stub, attempt=1, provider=HonestProvider(), settings=settings
+    )
+
+    for check_id in ("has_worked_example", "covers_what_why_how", "has_concrete_analogy"):
+        result = evaluation.by_id(check_id)
+        assert result is not None and not result.passed, (
+            f"{check_id} is an absence check and must stay failed on an empty lesson"
+        )
+    assert not evaluation.passed
+
+
+def test_absence_and_presence_checks_are_correctly_classified():
+    """Every judged check must declare whether its violation is quotable."""
+    absence = {"has_concrete_analogy", "has_worked_example", "covers_what_why_how", "has_recap"}
+    for spec in JUDGED_CHECKS:
+        expected = spec.id not in absence
+        assert spec.evidence_required is expected, (
+            f"{spec.id}: evidence_required should be {expected}"
+        )
+
+
 def test_failure_with_fabricated_evidence_is_downgraded_to_pass(settings, good_lesson):
     """A judge cannot fail a lesson using a quote that is not in it."""
 
@@ -115,10 +174,15 @@ def test_failure_with_fabricated_evidence_is_downgraded_to_pass(settings, good_l
     evaluation, _ = evaluate(
         lesson=good_lesson, attempt=1, provider=FabricatingProvider(), settings=settings
     )
-    judged = [r for r in evaluation.results if r.kind is CheckKind.JUDGED]
-    assert judged, "expected judged results"
-    assert all(r.passed for r in judged), "fabricated failures should be rejected"
-    assert any("evidence rejected" in r.evidence for r in judged)
+    # Only presence checks are downgraded. Absence checks are exempt — see
+    # test_absence_checks_do_not_require_quotable_evidence for why.
+    presence = [
+        r for r in evaluation.results
+        if r.kind is CheckKind.JUDGED and BY_ID[r.check_id].evidence_required
+    ]
+    assert presence, "expected judged presence checks"
+    assert all(r.passed for r in presence), "fabricated failures should be rejected"
+    assert any("evidence rejected" in r.evidence for r in presence)
 
 
 # ---------------------------------------------------- silence is not a pass

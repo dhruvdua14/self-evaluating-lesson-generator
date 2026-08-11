@@ -164,8 +164,15 @@ This is the section the brief explicitly asks for. Do the strong version.
 > experiment."
 
 ```bash
-lessonforge verify
+lessonforge verify --judge-model gemini-3.1-flash-lite
 ```
+
+> **Use the lite judge for this command on camera.** `verify` fires 7 judge
+> calls back to back and will blow through a free-tier per-minute limit on the
+> default model. The lite model draws from a separate pool and catches all six
+> injections. If you hit the limit anyway, the run reports *Partially
+> inconclusive* rather than a false green — which is itself worth showing, and
+> is covered in the bug story below.
 
 While it runs:
 

@@ -53,6 +53,23 @@ class CheckSpec(BaseModel):
     question: str
     # Shown to the generator on retry so it knows what "fixed" looks like.
     remediation_hint: str
+    # Can a violation of this check be quoted from the lesson?
+    #
+    # PRESENCE checks (evidence_required=True) fail because something bad is in
+    # the text — an idiom, a false claim, a forward reference. The offending
+    # text exists and must be quoted, which is what stops a judge inventing
+    # violations.
+    #
+    # ABSENCE checks (evidence_required=False) fail because something required
+    # is *missing* — no analogy, no worked example, no coverage. There is
+    # nothing to quote, by definition.
+    #
+    # Conflating the two is a live-fire bug this project actually shipped and
+    # then caught: the anti-fabrication guard rejected the judge's honest
+    # "The lesson body is empty." as an unverifiable quote and flipped a correct
+    # FAIL into a PASS. The defence against a lying judge had quietly become a
+    # rubber stamp for the most obviously broken content possible.
+    evidence_required: bool = True
 
     model_config = {"frozen": True}
 
