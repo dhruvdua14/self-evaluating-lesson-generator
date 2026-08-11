@@ -182,9 +182,23 @@ def _definition_patterns(term: str) -> list[re.Pattern[str]]:
     """
     t = re.escape(term)
     return [
-        # "an embedding is a list of numbers…" — require real substance after
-        # the copula so "Hallucination is bad." does not count.
-        re.compile(rf"\b{t}s?\b\s+(?:is|are|means?|refers? to)\b(?:\s+\S+){{4,}}"),
+        # "an embedding is a list of numbers…" / "a hallucination happens when…"
+        #
+        # The verb list is deliberately broad. Three separate live runs were
+        # rejected on definitions that were completely correct but phrased in a
+        # way the previous, narrower list did not anticipate — each time the
+        # generator rewrote the definition, the regex missed again, and the loop
+        # could not converge. Enumerating phrasings is a losing game; the point
+        # is to detect *definitional structure*, and depth is the judged check's
+        # job. Substance is still required after the verb, so "Hallucination is
+        # bad." does not count.
+        re.compile(
+            rf"\b{t}s?\b\s+(?:"
+            r"is|are|was|were|means?|meaning|refers? to|describes?|denotes?|"
+            r"happens? when|occurs? when|arises? when|involves?|stands? for|"
+            r"lets? you|allows? you|gives? you|helps? you|tells? you"
+            rf")\b(?:\s+\S+){{4,}}"
+        ),
         # "**Hallucination**: Hallucination is when an AI…"
         re.compile(rf"\b{t}s?\b\s*[:—–-]\s+(?:\S+\s+){{4,}}"),
         # "…called an embedding" / "we call this a chunk"
@@ -196,20 +210,40 @@ def _definition_patterns(term: str) -> list[re.Pattern[str]]:
     ]
 
 
+def _flatten_for_jargon(text: str) -> str:
+    """Remove emphasis markers so definitions are detectable.
+
+    Writers bold the term they are defining — "A **prompt** is the text you send
+    to the model" — which is good practice and exactly what a definition looks
+    like. But the asterisks sit between the term and its copula, so a pattern
+    looking for `prompt is …` never matches and the check rejects a textbook
+    definition. This cost two live runs before it was spotted, both of them
+    failing on wording that was completely correct.
+    """
+    out = re.sub(r"[*_]{1,3}", "", text)
+    return re.sub(r"[ \t]+", " ", out)
+
+
 def find_undefined_jargon(lesson_markdown: str) -> list[tuple[str, str]]:
-    """Return (term, excerpt) for each term that is never defined near an early use."""
-    lowered = lesson_markdown.lower()
+    """Return (term, excerpt) for each term that is never defined anywhere."""
+    flattened = _flatten_for_jargon(lesson_markdown)
+    lowered = flattened.lower()
     offenders: list[tuple[str, str]] = []
 
+    defined_terms: set[str] = set()
+
     for term, markers in JARGON_TERMS.items():
-        occurrences = list(re.finditer(rf"\b{re.escape(term)}\b", lowered))
+        # `\bembedding\b` does not match "embeddings" — the trailing 's' kills the
+        # word boundary — so every plural use was being skipped silently. That is
+        # a leniency bug: the check simply stopped looking at half the real uses.
+        occurrences = list(re.finditer(rf"\b{re.escape(term)}s?\b", lowered))
         if not occurrences:
             continue
 
         patterns = _definition_patterns(term)
         defined = False
 
-        for match in occurrences[:_OCCURRENCES_TO_CHECK]:
+        for match in occurrences:
             start = max(0, match.start() - _DEFINITION_WINDOW)
             end = min(len(lowered), match.end() + _DEFINITION_WINDOW)
             window = lowered[start:end]
@@ -221,11 +255,31 @@ def find_undefined_jargon(lesson_markdown: str) -> list[tuple[str, str]]:
                 break
 
         if defined:
+            defined_terms.add(term)
             continue
+
+        # A term that only ever appears inside a longer term already accounted
+        # for is not an independent use. "vector" inside "vector database" was
+        # being reported separately even when the compound was clearly defined,
+        # producing a failure the writer could only fix by defining a word they
+        # never actually used on its own.
+        if any(
+            term != other and term in other and other in defined_terms
+            for other in JARGON_TERMS
+        ):
+            bare = re.sub(
+                r"|".join(
+                    rf"\b{re.escape(o)}s?\b" for o in JARGON_TERMS if o != term and term in o
+                ),
+                " ",
+                lowered,
+            )
+            if not re.search(rf"\b{re.escape(term)}s?\b", bare):
+                continue
 
         first = occurrences[0]
         excerpt_start = max(0, first.start() - 70)
-        excerpt = lesson_markdown[excerpt_start : first.end() + 70].strip()
+        excerpt = flattened[excerpt_start : first.end() + 70].strip()
         offenders.append((term, excerpt.replace("\n", " ")))
 
     return offenders

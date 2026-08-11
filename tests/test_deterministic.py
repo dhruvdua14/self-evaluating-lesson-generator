@@ -177,3 +177,48 @@ def test_advisory_check_does_not_block():
         r for r in run_deterministic_checks(short, TH) if r.blocking and not r.passed
     ]
     assert all(r.check_id != "length_in_range" for r in blocking_failures)
+
+
+def test_bold_markers_do_not_hide_a_definition():
+    """Regression: markdown emphasis broke definition detection.
+
+    Writers bold the term they are defining — which is good practice and
+    exactly what a definition looks like — but the asterisks sit between the
+    term and its verb, so `prompt is ...` never matched. Two live runs were
+    rejected on wording that was completely correct.
+    """
+    text = "A **prompt** is the text input or question you write to the model."
+    assert "prompt" not in {t for t, _ in find_undefined_jargon(text)}
+
+
+def test_definition_verbs_beyond_the_copula_are_recognised():
+    """Enumerating phrasings is a losing game; detect definitional structure."""
+    for text in (
+        "A hallucination happens when a model gives a confident answer that is wrong.",
+        "Chunking means breaking a long document into smaller readable pieces.",
+        "An embedding refers to a list of numbers standing for the meaning of text.",
+        "Indexing describes the work of preparing documents before any question arrives.",
+    ):
+        flagged = {t for t, _ in find_undefined_jargon(text)}
+        term = text.split()[1].lower().rstrip(",.")
+        assert term not in flagged, f"false positive on {text!r}"
+
+
+def test_plural_uses_are_not_skipped():
+    """`\\bembedding\\b` never matched "embeddings" — half of real uses were missed."""
+    assert "embedding" in {t for t, _ in find_undefined_jargon("Embeddings are useful.")}
+
+
+def test_subterm_is_not_flagged_when_only_the_compound_is_used():
+    """"vector" inside "vector database" is not an independent use.
+
+    Reporting it separately produced a failure the writer could only fix by
+    defining a word they never used on its own.
+    """
+    text = "A vector database is a store that finds the closest matching pieces quickly."
+    assert "vector" not in {t for t, _ in find_undefined_jargon(text)}
+
+
+def test_subterm_is_still_flagged_when_used_alone():
+    text = "A vector database is a store that finds the closest matches. Each vector is opaque."
+    assert "vector" in {t for t, _ in find_undefined_jargon(text)}

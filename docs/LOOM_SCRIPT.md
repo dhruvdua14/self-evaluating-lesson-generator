@@ -242,6 +242,34 @@ Show `tests/test_injection.py::test_rate_limited_evaluator_never_reports_success
 — it drives the whole verification with a provider that only ever raises 429 and
 asserts the report comes back void.
 
+**Then the pattern — this is the closing argument, and the most portable thing
+you have.** Open `docs/ARCHITECTURE.md` § 15a and show the three-row table.
+
+> "Here's the part I found most useful. I hit four real bugs building this, and
+> three of them turned out to be the *same* mistake made independently in three
+> different layers.
+>
+> In the check layer, a rate-limited judge recorded every check as failed. In the
+> experiment layer, everything failing meant every planted error looked caught.
+> In the metrics layer, runs where the generator never returned were counted as
+> first-attempt failures, which dragged my pass rate from 100% to 33% while
+> literally nothing had been written or judged.
+>
+> Every one of those looked reasonable on its own. Failing closed is correct.
+> Comparing failed checks against predicted checks is correct. Counting a run
+> that didn't pass as not passing is correct. But the same bug is underneath all
+> three: **a failure to measure was being recorded as a measurement of failure.**
+>
+> So the fix is the same shape in each layer — carry the distinction explicitly
+> instead of inferring it. A check knows whether it ran. An experiment knows
+> whether it happened. A run knows whether it produced anything to judge.
+>
+> The general rule is what I'd take to any quality system, not just this one: if
+> it can't tell 'the thing is fine' from 'the measurement didn't happen', it will
+> eventually tell you a broken thing is fine — confidently, with a green tick.
+> And none of these would have shown up testing the happy path. They only
+> surfaced because the evaluator is something I deliberately attack."
+
 ---
 
 ## 5 · Memory and self-evolution (14:30–17:30)

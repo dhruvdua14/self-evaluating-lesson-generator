@@ -429,6 +429,48 @@ later") failed themselves on every lesson.
 
 ---
 
+## 15a. One mistake, three layers: never let a broken instrument look like a measurement
+
+Four real bugs were found by the system's own tooling. Three of them are the
+*same* mistake, made independently in three different layers, and only visible
+once written side by side:
+
+| Layer | What happened | Why it read as a quality signal |
+|---|---|---|
+| **Check** (`rubric/judge.py`) | Judge call 429s → every check recorded FAIL | Correct (fail closed), but the failures said nothing about the content |
+| **Experiment** (`verify.py`) | Every check failing → every planted error "caught" | An outage was indistinguishable from a perfect rubric; run reported green |
+| **Metrics** (`memory/store.py`) | Runs that never generated → counted as first-attempt failures | Pass rate fell from 100% to 33% while nothing had been written or judged |
+
+Each looked reasonable in isolation. Failing closed is right. Comparing failed
+checks against predicted checks is right. Counting a run that did not pass as not
+passing is right. The bug is the same in all three: **a failure to *measure* was
+being recorded as a measurement of failure.**
+
+The fix is the same shape in all three, too — carry the distinction explicitly
+rather than inferring it:
+
+- `CheckResult.errored` — this check did not run.
+- `VerificationReport.valid` / `InjectionOutcome.inconclusive` — this experiment
+  did not happen.
+- `stats()["errored_runs"]` — this run produced nothing to judge.
+
+A fourth bug was a variant of the same theme from the other direction: the
+anti-fabrication guard (§7) discarded correct absence-failures because they
+could not be quoted, so a defence against a *lying* judge became a rubber stamp
+for an *empty* lesson.
+
+The general rule, and the most portable thing in this repository:
+
+> **A quality system that cannot distinguish "the thing is fine" from "the
+> measurement did not happen" will eventually report that a broken thing is
+> fine — confidently, and with a green tick.**
+
+Three of these were found only because the evaluator is itself something the
+system deliberately attacks (§14). None would have been caught by testing the
+happy path.
+
+---
+
 ## 16. What this design gets wrong
 
 Stated plainly, because a design document that only lists strengths is marketing.
