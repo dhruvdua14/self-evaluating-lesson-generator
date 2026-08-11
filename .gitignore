@@ -29,3 +29,6 @@ output/*
 
 # Dashboard demo runs are kept out of the real memory store
 memory/dashboard.db
+
+# Personal recording notes — speaking script, not a project deliverable
+docs/LOOM_SCRIPT.md

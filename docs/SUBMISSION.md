@@ -10,7 +10,6 @@ command.
 | GitHub repo + README | [github.com/dhruvdua14/self-evaluating-lesson-generator](https://github.com/dhruvdua14/self-evaluating-lesson-generator) |
 | Final lesson content | `output/<latest-run>/lesson.md` — paste into the Google Doc |
 | Rejection log | `output/<latest-run>/rejection_log.md` |
-| Loom script | [`docs/LOOM_SCRIPT.md`](LOOM_SCRIPT.md) |
 
 ## Pipeline requirements
 

@@ -385,7 +385,6 @@ console script installed but the package unimportable. Every `make` target sets
 - [`docs/RUBRIC.md`](docs/RUBRIC.md) — all 18 checks in full, generated from code.
 - [`docs/SUBMISSION.md`](docs/SUBMISSION.md) — requirement-by-requirement map,
   and the two bugs the system's own tooling found in it.
-- [`docs/LOOM_SCRIPT.md`](docs/LOOM_SCRIPT.md) — the video walkthrough script.
 
 ## Licence
 
