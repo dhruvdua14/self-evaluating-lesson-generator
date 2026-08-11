@@ -6,7 +6,7 @@ Face visible throughout. Terminal + editor side by side, font size up.
 
 ```bash
 cd <repo>
-make test                      # confirm 61 green
+make test                      # confirm 77 green
 cp .env.example .env           # GEMINI_API_KEY set
 rm -rf output/2*               # clean slate for the demo
 lessonforge memory --reset     # so the memory story starts from zero
@@ -169,7 +169,7 @@ lessonforge verify --judge-model gemini-3.1-flash-lite
 
 > **Use the lite judge for this command on camera.** `verify` fires 7 judge
 > calls back to back and will blow through a free-tier per-minute limit on the
-> default model. The lite model draws from a separate pool and catches all six
+> default model. The lite model draws from a separate pool and catches all seven
 > injections. If you hit the limit anyway, the run reports *Partially
 > inconclusive* rather than a false green — which is itself worth showing, and
 > is covered in the bug story below.
@@ -178,7 +178,7 @@ While it runs:
 
 > "It takes a lesson that passes all sixteen blocking checks, confirms that
 > first — if the baseline doesn't pass, the experiment is void and it says so —
-> then corrupts it six different ways. And for each one I declared **in advance**,
+> then corrupts it seven different ways. And for each one I declared **in advance**,
 > in `inject.py`, which checks must fail."
 
 Show the results table. Then open `src/lessonforge/inject.py` and show the
@@ -333,7 +333,7 @@ wrong":
 > "I wrote down what this gets wrong. One judge model is a single point of
 > failure. My thresholds are defensible but not validated against real learners.
 > Directives accumulate and are never automatically retired. And `verify` proves
-> the rubric catches *these six* errors — it does not prove the rubric is
+> the rubric catches *these seven* errors — it does not prove the rubric is
 > complete. Nothing could."
 
 ---

@@ -61,7 +61,7 @@ A real run, offline, in ten seconds:
 ```bash
 make setup                 # venv + dependencies
 make run-offline           # full loop, no API key required
-make test                  # 67 tests, no API key required
+make test                  # 77 tests, no API key required
 ```
 
 The offline path is not a stub. It replays a genuinely bad first draft and a
@@ -86,7 +86,7 @@ make run                   # generate → evaluate → regenerate on Gemini
 | **Measures what is measurable** | Readability, sentence length, jargon density and coverage are computed in Python. No LLM is asked to count. |
 | **Judges with an independent context** | The evaluator never sees the generation prompt, the plan, or the fact that this is attempt 3. It reads an anonymous document and a checklist. |
 | **Demands evidence** | Every judged failure must quote the offending text verbatim. Quotes that do not appear in the lesson are rejected automatically and the failure is discarded. |
-| **Proves the rubric works** | `make verify` plants six known errors in a passing lesson and checks that the predicted checks fail. A rubric nobody has tried to fool is a rubric nobody knows works. |
+| **Proves the rubric works** | `make verify` plants seven known errors in a passing lesson and checks that the predicted checks fail. A rubric nobody has tried to fool is a rubric nobody knows works. |
 | **Learns across runs** | Checks that keep failing become standing directives injected into every future generation, before the first attempt. |
 
 ---
@@ -97,7 +97,7 @@ make run                   # generate → evaluate → regenerate on Gemini
 |---|---|
 | `lessonforge run` | Generate → evaluate → regenerate. Exits non-zero if nothing shipped. |
 | `lessonforge run --inject-error factual` | Plant a deliberate error and watch the evaluator catch it. |
-| `lessonforge verify` | Corrupt a passing lesson six ways; report which checks caught what. |
+| `lessonforge verify` | Corrupt a passing lesson seven ways; report which checks caught what. |
 | `lessonforge rubric` | Print all 18 checks. |
 | `lessonforge memory` | What has been learned: failure patterns, directives, first-attempt pass rate. |
 | `lessonforge graph` | Print the state machine. |
@@ -163,7 +163,7 @@ lesson, but would it have failed a bad one?*
 make verify
 ```
 
-Takes a lesson that passes all 16 blocking checks, corrupts it six ways, and
+Takes a lesson that passes all 16 blocking checks, corrupts it seven ways, and
 reports whether the checks **predicted in advance** actually fired:
 
 ```
@@ -255,6 +255,36 @@ The claim is deliberately narrow and falsifiable: **first-attempt pass rate
 should rise as directives accumulate.** `lessonforge memory` prints exactly that
 number and the per-run history, so the claim can be checked rather than
 believed.
+
+### It was checked. It did not hold.
+
+Across seven live runs, first-attempt results went 0/1 with no directives to 3/3
+with two — which looks like a clean confirmation. It is not one. Two `jargon_density`
+false positives were fixed in the same window, so "the directives help" and "the
+rubric stopped being wrong" both predicted that jump.
+
+The control run separates them — same code, same models, `--no-evolve`:
+
+```
+CONTROL — directives DISABLED
+  evaluate  attempt 1 · PASS · 18/18 checks passed · grade 7.05, 1805 words
+  gate      shipped after 1/3 attempts
+```
+
+**The control passes too** — first attempt, 18/18, with no directives at all. One
+control run is a thin sample (a second was lost to quota), but it is enough to
+break the attribution: the jump is equally well explained by the rubric fixes.
+
+So: the *mechanism* demonstrably works — failures aggregate, a directive is
+synthesised at threshold, and it is injected before the first attempt of every
+later run, all visible in `lessonforge memory`. The *quality benefit is
+unproven*. Proving it needs an interleaved A/B across many runs on a frozen
+rubric and varied topics, which is not what this data is. Full working in
+[`ARCHITECTURE.md` §12a](docs/ARCHITECTURE.md).
+
+Stating the metric up front was worth it precisely because it got falsified. A
+README quoting the 0/1 → 3/3 jump without the control would have been more
+impressive and less true.
 
 Two guard rails, because a system that edits its own prompt can drift:
 

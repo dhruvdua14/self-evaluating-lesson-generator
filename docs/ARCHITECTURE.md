@@ -75,7 +75,7 @@ It also makes the concept ordering an explicit, inspectable artefact
 against. A dependency order you can read is a dependency order you can test.
 
 **Cost.** One extra API call per run. Bought with the cheaper model
-(`gemini-2.5-flash`), since planning is structurally constrained by a schema.
+(`gemini-3.5-flash`), since planning is structurally constrained by a schema.
 
 ---
 
@@ -320,6 +320,68 @@ radius, but a human should read `lessonforge memory` periodically. This is the
 part of the system that most needs supervision, and saying so is part of the
 design.
 
+### 12a. What the live data actually shows — and does not
+
+The claim was stated up front so it could be checked. It was checked, and on the
+evidence collected it **does not hold**.
+
+Run history across seven live runs:
+
+| run | attempts | 1st attempt | directives | note |
+|---|---|---|---|---|
+| 1 | 3 | fail | 0 | shipped on attempt 3 |
+| 2–3 | 0 | n/a | 1 | generator quota exhausted; nothing evaluated |
+| 4 | 3 | fail | 1 | rejected — nothing shipped |
+| 5–7 | 1 | **pass** | 2 | shipped first attempt |
+
+Read alone, that looks like a clean confirmation: no directives → first-attempt
+failure, two directives → three consecutive first-attempt passes.
+
+It is not, because a second variable moved at the same time. Runs 1 and 4 failed
+substantially on `jargon_density` false positives — the check was rejecting
+definitions that were correct (see §15a). Those bugs were fixed between run 4 and
+run 5. So the improvement had two candidate causes: the directives, or the rubric
+no longer being wrong.
+
+The control run settles it. Same code, same models, directives disabled via
+`--no-evolve`:
+
+```
+CONTROL — same code, directives DISABLED
+  evaluate  attempt 1 · PASS · 18/18 checks passed · grade 7.05, 1805 words
+  gate      shipped after 1/3 attempts
+```
+
+**The control passes too** — first attempt, 18/18, with no directives at all.
+
+The sample is thin and should be described as such: **one** control run
+completed (a second was lost to the generator's daily quota). One data point
+cannot show the directives are inert. What it does do is break the attribution —
+the 0/1 → 3/3 jump is equally well explained by the rubric fixes, so it is no
+longer evidence for the directives. The honest conclusion:
+
+- The **mechanism** is real and demonstrable: failures are aggregated, a
+  directive is synthesised once a check crosses the threshold, and it is injected
+  into every later run before the first attempt. That is all observable in
+  `lessonforge memory`.
+- The **quality benefit is unproven.** With one control run and a confounded
+  before/after, this data cannot distinguish "the directives help" from "the
+  directives are inert and my check was broken".
+
+Establishing it properly needs what was not done here: a fixed rubric, an
+interleaved A/B across many runs on varied topics, and a first-attempt pass rate
+compared between arms. Until then this layer should be described as *implemented
+and instrumented*, not as *shown to work*.
+
+Making the claim falsifiable was the right call precisely because it got
+falsified. A version of this document that quoted the 0/1 → 3/3 jump without the
+control would have been more impressive and less true.
+
+**Fixed along the way:** `--no-evolve` previously suppressed only the *learning*
+of new directives while still injecting previously learned ones — so the control
+group silently received the treatment. A control that applies the treatment is
+not a control.
+
 ---
 
 ## 13. Grounding
@@ -356,7 +418,7 @@ evaluator would have failed a bad lesson?*
    before any result is seen.
 4. Report caught, missed, and collateral failures.
 
-Six injection modes: `factual`, `fabrication`, `jargon`, `idiom`, `dependency`,
+Seven injection modes: `factual`, `fabrication`, `jargon`, `idiom`, `dependency`,
 `coverage`. The same experiment runs in CI, so loosening a threshold breaks a
 test.
 
@@ -491,7 +553,7 @@ Stated plainly, because a design document that only lists strengths is marketing
   useful stays in the prompt until a human deactivates it. The store supports
   deactivation; nothing calls it automatically, because automatic removal has the
   same drift risk as automatic rubric edits.
-- **`verify` proves the rubric catches *these six* errors.** It does not prove
+- **`verify` proves the rubric catches *these seven* errors.** It does not prove
   the rubric is complete. Nothing could.
 
 ---

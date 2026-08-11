@@ -39,7 +39,7 @@ command.
 
 | Requirement | Implementation | Verify with |
 |---|---|---|
-| **SELF-EVOLVING** — learn from repeated failures to sharpen prompts | `memory/evolve.py`: a check failing twice across runs becomes a standing generator directive injected before attempt 1 of every future run | `make memory` after 2+ runs |
+| **SELF-EVOLVING** — learn from repeated failures to sharpen prompts | `memory/evolve.py`: a check failing twice across runs becomes a standing generator directive injected before attempt 1 of every future run. **Mechanism verified; quality benefit unproven** — see ARCHITECTURE.md §12a for the control run that broke the attribution | `make memory` after 2+ runs |
 | **MEMORY** — persists across runs, learns from feedback and logs | `memory/store.py` (SQLite): runs, per-check verdicts, directives, lessons | `lessonforge memory --json` |
 | **STACK** — LangGraph / Python + API | Python 3.11+, LangGraph state machine, Google Gemini via `google-genai`, pluggable provider protocol | `make graph` |
 
@@ -47,13 +47,13 @@ command.
 
 | | Why it is here |
 |---|---|
-| `lessonforge verify` | Answers the obvious challenge to any self-evaluating system: plants six known errors in a passing lesson and checks the checks predicted **in advance** actually fire. |
+| `lessonforge verify` | Answers the obvious challenge to any self-evaluating system: plants seven known errors in a passing lesson and checks the checks predicted **in advance** actually fire. |
 | Hybrid evaluator | Half the rubric is deterministic Python. LLMs cannot reliably count, so measurable properties are measured. |
 | Judge isolation | The evaluator never sees the generation prompt, the plan, or the attempt number, so it cannot grade its own homework kindly. |
 | Anti-fabrication | Judged failures must quote the lesson verbatim; unverifiable quotes are discarded. An omitted verdict counts as a failure, never a pass. |
 | Fails closed | Retry budget exhausted with checks failing → nothing ships, non-zero exit. |
 | Offline provider | The whole loop runs with no API key, so tests and CI need no secrets. |
-| 67 tests + CI | Including a standing regression test on the rubric itself. |
+| 77 tests + CI | Including a standing regression test on the rubric itself. |
 
 ## Four things this got wrong, and fixed
 
@@ -108,7 +108,7 @@ because the evaluator is itself something we deliberately attack.
 Stated in full in [`ARCHITECTURE.md` § 16](ARCHITECTURE.md#16-what-this-design-gets-wrong).
 The short version: one judge model is a single point of failure; thresholds are
 defensible but not validated against real learners; directives accumulate and are
-never automatically retired; and `verify` proves the rubric catches *these six*
+never automatically retired; and `verify` proves the rubric catches *these seven*
 errors, not that it is complete.
 
 ## Note on models
