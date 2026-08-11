@@ -17,19 +17,28 @@ clear
 > evidence this ever ran live. Likewise do not `memory --reset` — the 13-run
 > history *is* the memory story in §5.
 
-**Check your quota before planning any live run:**
+**You can run live on camera.** `.env` ships pointed at `gemini-3.1-flash-lite`
+for all four roles, which has enough free-tier headroom to run the whole loop in
+3–7 API calls. Confirm before recording:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m lessonforge models
+make run            # ~40s, should reach SHIPPED or REJECTED
 ```
 
-Free Google AI Studio keys get only a handful of `gemini-3.6-flash` calls per
-day. A single full run needs roughly a dozen. If the quota is spent, a live run
-dies at `generate` with a 429 and produces *nothing* — that is an outage, not a
-rejection, and it is a bad thing to put on camera. **Record the loop from the
-dashboard's Replay mode instead** (see §3); it animates the real recorded run
-event-for-event, and `output/sample-run/` is committed proof it came from a live
-Gemini run.
+Two things to know:
+
+* **The outcome varies run to run.** Across eight live runs: five shipped (some
+  first attempt, some after one retry), three rejected. Roughly two in three
+  ship. Every outcome is defensible on camera — see "If a live run fails" at the
+  bottom — but you cannot choose which one you get.
+* **Do not switch to `gemini-3.6-flash`** unless you are on a paid key. The free
+  tier allows a couple of calls a day; the run then dies at `generate` with a
+  429 and evaluates nothing, which looks like a broken project rather than a
+  quality gate.
+
+If you want a guaranteed clean FAIL → PASS → ship arc for the narration, use the
+dashboard's Replay mode on `sample-run` instead of a live run. It animates a real
+recorded Gemini run event-for-event.
 
 Keep two terminal tabs open: one for commands, one already sitting in the repo
 for showing files.
