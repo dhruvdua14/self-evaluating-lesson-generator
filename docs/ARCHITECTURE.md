@@ -163,12 +163,32 @@ An LLM judge is itself an unreliable narrator. Three mechanisms, all tested:
 **Structured output.** The judge is bound to a Pydantic schema, so it cannot
 answer a checklist with an essay.
 
-**Evidence quotes.** Every failure must carry a verbatim quote from the lesson.
-`_evidence_is_real()` checks the quote actually appears — exact match first, then
-a sliding fuzzy match, because models re-wrap whitespace when quoting and
-reformatting is not fabrication. **A failure justified by a quote that is not in
-the lesson is discarded and the check passes**, with the discrepancy recorded.
-The judge cannot invent a violation it cannot cite.
+**Evidence quotes — on presence checks only.** Every *presence* failure must
+carry a verbatim quote from the lesson. `_evidence_is_real()` checks the quote
+actually appears — exact match first, then a sliding fuzzy match, because models
+re-wrap whitespace when quoting and reformatting is not fabrication. A failure
+justified by a quote that is not in the lesson is discarded and the check passes,
+with the discrepancy recorded. The judge cannot invent a violation it cannot cite.
+
+The qualifier is load-bearing, and learning that cost a real bug. Checks split
+into two kinds:
+
+- **Presence checks** fail because something bad *is in* the text — an idiom, a
+  false claim, a forward reference. The offending text exists and is quotable.
+- **Absence checks** fail because something required is *missing* — no analogy,
+  no worked example, no coverage. There is nothing to quote, by construction.
+
+Applying the guard to absence checks inverts it. Against a lesson stripped to a
+50-word stub, the judge correctly answered `passed=False`, reason *"The lesson
+has no content."*, evidence *"The lesson body is empty."* — an honest
+description of absence, not a quotation. The guard could not find that sentence
+in the lesson, ruled it fabricated, and **flipped the correct FAIL to a PASS**.
+Two different live judges then passed the stub on `has_worked_example` and
+`covers_what_why_how`.
+
+So the defence against a lying judge had become a rubber stamp for the most
+obviously broken content possible — precisely the failure this system exists to
+prevent. `CheckSpec.evidence_required` now marks the four absence checks exempt.
 
 **Silence is not a pass.** A check the judge fails to return is recorded as a
 *failure*, never a pass. An evaluator that can make a check disappear by omitting

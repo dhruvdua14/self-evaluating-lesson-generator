@@ -55,10 +55,12 @@ command.
 | Offline provider | The whole loop runs with no API key, so tests and CI need no secrets. |
 | 67 tests + CI | Including a standing regression test on the rubric itself. |
 
-## Three things this got wrong, and fixed
+## Four things this got wrong, and fixed
 
-All three were found by the system's own tooling rather than by inspection, which is
-the argument for building the tooling.
+All four were found by the system's own tooling rather than by inspection, which
+is the argument for building the tooling. Two of them are the kind of bug that
+makes a quality system *report success while doing nothing*, which is worse than
+having no quality system at all.
 
 **1. Document averages hide localised damage.** `verify` predicted the `jargon`
 injection would fail `readability_grade`. It did not — appending one 60-word
@@ -85,9 +87,21 @@ and void the run rather than decorating it; backoff is sized to the error so a
 per-minute rate limit no longer poisons every remaining call. See commit
 `c72be6d`.
 
-The general form of that third one is the point of the whole project: **a
+**4. The anti-gaming defence became a rubber stamp.** Every judged failure had to
+quote the offending text, and unquotable failures were discarded as fabricated.
+That is right for a *presence* check (an idiom exists and can be quoted) and
+exactly backwards for an *absence* check, where the failure is that content is
+**missing** and there is nothing to quote. Against a lesson cut to a 50-word
+stub, the judge correctly returned *"The lesson body is empty."* — the guard
+ruled it fabricated and flipped the FAIL to a PASS. Two different live judges
+then passed the stub on `has_worked_example` and `covers_what_why_how`. Checks
+now declare `evidence_required`; the four absence checks are exempt.
+
+The general form of the last two is the point of the whole project: **a
 monitoring system that cannot tell "the thing is fine" from "the monitor is
-broken" will eventually report that a broken thing is fine.**
+broken" will eventually report that a broken thing is fine.** Both bugs made the
+system confidently green while evaluating nothing, and both were caught only
+because the evaluator is itself something we deliberately attack.
 
 ## Known limitations
 

@@ -185,7 +185,14 @@ Predictions are declared in `inject.py` before any result is seen, and the same
 experiment runs in CI as `tests/test_injection.py`. If someone loosens a
 threshold, a test fails.
 
-**This process has already found two real bugs.**
+The result above is the offline run. The same experiment against a **live Gemini
+judge** is committed verbatim at
+[`output/sample-run/live_verification.md`](output/sample-run/live_verification.md)
+— baseline valid, 7/7 caught, nothing missed.
+
+**This process has already found four real bugs.** Two of them made the system
+report success while evaluating nothing — the exact failure mode a quality gate
+exists to prevent. The two worth reading:
 
 The `jargon` injection was originally predicted to fail `readability_grade`. It
 did not: appending one 60-word unreadable paragraph to a long clean lesson moved
@@ -201,9 +208,20 @@ evaluated at all. With no evaluator running, every check fails for every input,
 so each planted error looked trivially caught. **An outage was indistinguishable
 from a perfectly discriminating rubric.** Checks that did not actually run are now
 marked `errored`, excluded from the caught set, and void the run instead of
-decorating it. The general form is the point of this whole project: *a monitoring
-system that cannot tell "the thing is fine" from "the monitor is broken" will
-eventually report that a broken thing is fine.*
+decorating it.
+
+The worst one was the anti-gaming defence turning into a rubber stamp. Every
+judged failure had to quote the offending text, and unquotable failures were
+discarded as fabricated — correct for a *presence* check (an idiom exists and can
+be quoted), exactly backwards for an *absence* check, where the failure is that
+content is **missing** and there is nothing to quote. Given a lesson cut down to
+a 50-word stub, the judge correctly answered *"The lesson body is empty."* The
+guard ruled that fabricated and flipped the FAIL to a PASS, so two different live
+judges "passed" the stub on `has_worked_example` and `covers_what_why_how`.
+
+The general form of the last two is the point of this whole project: *a
+monitoring system that cannot tell "the thing is fine" from "the monitor is
+broken" will eventually report that a broken thing is fine.*
 
 ---
 
