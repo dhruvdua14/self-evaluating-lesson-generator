@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lessonforge"
+version = "1.0.0"
+description = "A self-evaluating lesson content generator: generate → evaluate → regenerate."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Dhruv Dua" }]
+keywords = ["llm", "agents", "langgraph", "evaluation", "content", "rag"]
+
+dependencies = [
+    "google-genai>=1.0.0",
+    "langgraph>=0.2.0",
+    "pydantic>=2.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+lessonforge = "lessonforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lessonforge = ["prompts/*.md", "knowledge/*.md", "llm/fixtures/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # No API key is configured anywhere in CI, deliberately. The whole loop —
+      # generate, evaluate, regenerate, reflect, persist — runs against the
+      # deterministic offline provider, so these jobs also prove the system has
+      # no hidden dependency on a live model.
+      - name: Test suite
+        run: PYTHONPATH=src python -m pytest -q
+
+      - name: Loop runs end to end offline
+        run: PYTHONPATH=src python -m lessonforge run --provider mock
+
+      - name: Evaluator catches every planted error
+        run: PYTHONPATH=src python -m lessonforge verify --provider mock
+
+      - name: Rubric doc is in sync with the code
+        run: |
+          PYTHONPATH=src python -m lessonforge export-rubric --out /tmp/RUBRIC.md
+          diff -u docs/RUBRIC.md /tmp/RUBRIC.md \
+            || (echo "::error::docs/RUBRIC.md is stale. Run: make rubric-doc" && exit 1)
